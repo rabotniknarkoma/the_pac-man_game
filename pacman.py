@@ -53,8 +53,8 @@ class Player(pygame.sprite.Sprite):
             self.const = (0, '')
             if self.rect.y <= 5:
                 self.rect.y = 6
-            elif self.rect.y >= 554:
-                self.rect.y = 553
+            elif self.rect.y >= 552:
+                self.rect.y = 551
         if pygame.sprite.spritecollideany(self, vertical_borders):
             self.const = (0, '')
             if self.rect.x <= 5:
@@ -103,8 +103,8 @@ class Red(pygame.sprite.Sprite):
             self.turn = random.choice([2, 4])
             if self.rect.y <= 5:
                 self.rect.y = 6
-            elif self.rect.y >= 554:
-                self.rect.y = 553
+            elif self.rect.y >= 552:
+                self.rect.y = 551
         elif pygame.sprite.spritecollideany(self, vertical_borders):
             self.turn = random.choice([1, 3])
             if self.rect.x <= 5:
@@ -144,8 +144,8 @@ class Green(pygame.sprite.Sprite):
             self.turn = random.choice([2, 4])
             if self.rect.y <= 5:
                 self.rect.y = 6
-            elif self.rect.y >= 554:
-                self.rect.y = 553
+            elif self.rect.y >= 552:
+                self.rect.y = 551
         elif pygame.sprite.spritecollideany(self, vertical_borders):
             self.turn = random.choice([1, 3])
             if self.rect.x <= 5:
@@ -185,8 +185,8 @@ class Yellow(pygame.sprite.Sprite):
             self.turn = random.choice([2, 4])
             if self.rect.y <= 5:
                 self.rect.y = 6
-            elif self.rect.y >= 554:
-                self.rect.y = 553
+            elif self.rect.y >= 552:
+                self.rect.y = 551
         elif pygame.sprite.spritecollideany(self, vertical_borders):
             self.turn = random.choice([1, 3])
             if self.rect.x <= 5:
@@ -226,8 +226,8 @@ class Blue(pygame.sprite.Sprite):
             self.turn = random.choice([2, 4])
             if self.rect.y <= 5:
                 self.rect.y = 6
-            elif self.rect.y >= 554:
-                self.rect.y = 553
+            elif self.rect.y >= 552:
+                self.rect.y = 551
         elif pygame.sprite.spritecollideany(self, vertical_borders):
             self.turn = random.choice([1, 3])
             if self.rect.x <= 5:
@@ -268,6 +268,7 @@ def the_game():
     green = Green(all_sprites)
     blue = Blue(all_sprites)
     player = Player(all_sprites)
+    print(player)
     Border(5, 5, width - 5, 5)
     Border(5, height - 5, width - 5, height - 5)
     Border(5, 5, 5, height - 5)
