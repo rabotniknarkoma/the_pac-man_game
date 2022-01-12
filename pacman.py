@@ -10,6 +10,7 @@ screen = pygame.display.set_mode(size)
 all_sprites = pygame.sprite.Group()
 horizontal_borders = pygame.sprite.Group()
 vertical_borders = pygame.sprite.Group()
+SCORE = 0
 FPS = 60
 clock = pygame.time.Clock()
 
@@ -53,8 +54,8 @@ class Player(pygame.sprite.Sprite):
             self.const = (0, '')
             if self.rect.y <= 5:
                 self.rect.y = 6
-            elif self.rect.y >= 552:
-                self.rect.y = 551
+            elif self.rect.y >= 354:
+                self.rect.y = 353
         if pygame.sprite.spritecollideany(self, vertical_borders):
             self.const = (0, '')
             if self.rect.x <= 5:
@@ -103,8 +104,8 @@ class Red(pygame.sprite.Sprite):
             self.turn = random.choice([2, 4])
             if self.rect.y <= 5:
                 self.rect.y = 6
-            elif self.rect.y >= 552:
-                self.rect.y = 551
+            elif self.rect.y >= 352:
+                self.rect.y = 351
         elif pygame.sprite.spritecollideany(self, vertical_borders):
             self.turn = random.choice([1, 3])
             if self.rect.x <= 5:
@@ -144,8 +145,8 @@ class Green(pygame.sprite.Sprite):
             self.turn = random.choice([2, 4])
             if self.rect.y <= 5:
                 self.rect.y = 6
-            elif self.rect.y >= 552:
-                self.rect.y = 551
+            elif self.rect.y >= 352:
+                self.rect.y = 351
         elif pygame.sprite.spritecollideany(self, vertical_borders):
             self.turn = random.choice([1, 3])
             if self.rect.x <= 5:
@@ -185,8 +186,8 @@ class Yellow(pygame.sprite.Sprite):
             self.turn = random.choice([2, 4])
             if self.rect.y <= 5:
                 self.rect.y = 6
-            elif self.rect.y >= 552:
-                self.rect.y = 551
+            elif self.rect.y >= 352:
+                self.rect.y = 351
         elif pygame.sprite.spritecollideany(self, vertical_borders):
             self.turn = random.choice([1, 3])
             if self.rect.x <= 5:
@@ -226,8 +227,8 @@ class Blue(pygame.sprite.Sprite):
             self.turn = random.choice([2, 4])
             if self.rect.y <= 5:
                 self.rect.y = 6
-            elif self.rect.y >= 552:
-                self.rect.y = 551
+            elif self.rect.y >= 352:
+                self.rect.y = 351
         elif pygame.sprite.spritecollideany(self, vertical_borders):
             self.turn = random.choice([1, 3])
             if self.rect.x <= 5:
@@ -261,28 +262,88 @@ class Border(pygame.sprite.Sprite):
             self.rect = pygame.Rect(x1, y1, x2 - x1, 1)
 
 
+class Dot(pygame.sprite.Sprite):
+    image = load_image("dot.png")
+
+    def __init__(self, *group):
+        super().__init__(*group)
+        self.image = Dot.image
+        self.image.set_colorkey(pygame.Color('white'))
+        self.rect = self.image.get_rect()
+        self.mask = pygame.mask.from_surface(self.image)
+        self.rect.x = 80
+        self.rect.y = 80
+        self.const = (0, '')
+
+
+class SmallDot(pygame.sprite.Sprite):
+    image = pygame.transform.scale(load_image("dot.png"), (10, 10))
+
+    def __init__(self, *group):
+        super().__init__(*group)
+        self.image = SmallDot.image
+        self.image.set_colorkey(pygame.Color('white'))
+        self.rect = self.image.get_rect()
+        self.mask = pygame.mask.from_surface(self.image)
+        self.rect.x = 100
+        self.rect.y = 100
+        self.const = (0, '')
+
+
 def the_game():
     pygame.display.flip()
+    dot = Dot(all_sprites)
+    small_dot = SmallDot(all_sprites)
     red = Red(all_sprites)
     yellow = Yellow(all_sprites)
     green = Green(all_sprites)
     blue = Blue(all_sprites)
     player = Player(all_sprites)
-    print(player)
     Border(5, 5, width - 5, 5)
-    Border(5, height - 5, width - 5, height - 5)
-    Border(5, 5, 5, height - 5)
-    Border(width - 5, 5, width - 5, height - 5)
+    Border(5, 400 - 5, width - 5, 400 - 5)
+    Border(5, 5, 5, 400 - 5)
+    Border(width - 5, 5, width - 5, 400 - 5)
     running = True
+    font = pygame.font.Font(None, 30)
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.KEYDOWN:
                 all_sprites.update(event)
+
+        heart1_image = load_image('heart.png')
+        heart1_image.set_colorkey(pygame.Color('white'))
+        heart1_rect = heart1_image.get_rect()
+        heart1_rect.x = 10
+        heart1_rect.y = 500
+
+        heart2_image = load_image('heart.png')
+        heart2_image.set_colorkey(pygame.Color('white'))
+        heart2_rect = heart1_image.get_rect()
+        heart2_rect.x = 50
+        heart2_rect.y = 500
+
+        heart3_image = load_image('heart.png')
+        heart3_image.set_colorkey(pygame.Color('white'))
+        heart3_rect = heart1_image.get_rect()
+        heart3_rect.x = 90
+        heart3_rect.y = 500
+
+        text = 'SCORE:' + str(SCORE)
+        string_rendered = font.render(text, True, pygame.Color('white'))
+        score_rect = string_rendered.get_rect()
+        score_rect.x = 400
+        score_rect.y = 500
+
         all_sprites.update()
         screen.fill(pygame.Color('black'))
+        screen.blit(heart1_image, heart1_rect)
+        screen.blit(heart2_image, heart2_rect)
+        screen.blit(heart3_image, heart3_rect)
+        screen.blit(string_rendered, score_rect)
         all_sprites.draw(screen)
+
         clock.tick(FPS)
         pygame.display.flip()
     terminate()
