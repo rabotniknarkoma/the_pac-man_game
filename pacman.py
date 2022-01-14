@@ -46,8 +46,8 @@ class Player(pygame.sprite.Sprite):
         self.image.set_colorkey(pygame.Color('white'))
         self.rect = self.image.get_rect()
         self.mask = pygame.mask.from_surface(self.image)
-        self.rect.x = 50
-        self.rect.y = 50
+        self.rect.x = 200
+        self.rect.y = 200
         self.const = (0, '')
 
     def update(self, *args):
@@ -88,6 +88,7 @@ class Player(pygame.sprite.Sprite):
 
 class Red(pygame.sprite.Sprite):
     image = load_image("red.png")
+    new_image = load_image("edible_ghost.png")
 
     def __init__(self, *group):
         super().__init__(*group)
@@ -99,8 +100,15 @@ class Red(pygame.sprite.Sprite):
         self.rect.y = 10
         self.turn = random.randint(1, 4)
         self.counter = 0
+        self.edible = False
 
     def update(self, *args):
+        if self.edible:
+            self.image = Red.new_image
+            self.image.set_colorkey(pygame.Color('white'))
+        else:
+            self.image = Red.image
+            self.image.set_colorkey(pygame.Color('white'))
         if pygame.sprite.spritecollideany(self, horizontal_borders):
             self.turn = random.choice([2, 4])
             if self.rect.y <= 5:
@@ -129,6 +137,7 @@ class Red(pygame.sprite.Sprite):
 
 class Green(pygame.sprite.Sprite):
     image = load_image("green.png")
+    new_image = load_image("edible_ghost.png")
 
     def __init__(self, *group):
         super().__init__(*group)
@@ -140,8 +149,15 @@ class Green(pygame.sprite.Sprite):
         self.rect.y = 10
         self.turn = random.randint(1, 4)
         self.counter = 0
+        self.edible = False
 
     def update(self, *args):
+        if self.edible:
+            self.image = Green.new_image
+            self.image.set_colorkey(pygame.Color('white'))
+        else:
+            self.image = Green.image
+            self.image.set_colorkey(pygame.Color('white'))
         if pygame.sprite.spritecollideany(self, horizontal_borders):
             self.turn = random.choice([2, 4])
             if self.rect.y <= 5:
@@ -170,6 +186,7 @@ class Green(pygame.sprite.Sprite):
 
 class Yellow(pygame.sprite.Sprite):
     image = load_image("yellow.png")
+    new_image = load_image("edible_ghost.png")
 
     def __init__(self, *group):
         super().__init__(*group)
@@ -181,8 +198,15 @@ class Yellow(pygame.sprite.Sprite):
         self.rect.y = 10
         self.turn = random.randint(1, 4)
         self.counter = 0
+        self.edible = False
 
     def update(self, *args):
+        if self.edible:
+            self.image = Yellow.new_image
+            self.image.set_colorkey(pygame.Color('white'))
+        else:
+            self.image = Yellow.image
+            self.image.set_colorkey(pygame.Color('white'))
         if pygame.sprite.spritecollideany(self, horizontal_borders):
             self.turn = random.choice([2, 4])
             if self.rect.y <= 5:
@@ -211,6 +235,7 @@ class Yellow(pygame.sprite.Sprite):
 
 class Blue(pygame.sprite.Sprite):
     image = load_image("blue.png")
+    new_image = load_image("edible_ghost.png")
 
     def __init__(self, *group):
         super().__init__(*group)
@@ -222,8 +247,15 @@ class Blue(pygame.sprite.Sprite):
         self.rect.y = 10
         self.turn = random.randint(1, 4)
         self.counter = 0
+        self.edible = False
 
     def update(self, *args):
+        if self.edible:
+            self.image = Blue.new_image
+            self.image.set_colorkey(pygame.Color('white'))
+        else:
+            self.image = Blue.image
+            self.image.set_colorkey(pygame.Color('white'))
         if pygame.sprite.spritecollideany(self, horizontal_borders):
             self.turn = random.choice([2, 4])
             if self.rect.y <= 5:
@@ -292,19 +324,32 @@ class SmallDot(pygame.sprite.Sprite):
 
 
 def the_game():
+    global SCORE
+
     pygame.display.flip()
-    dot = Dot(all_sprites)
-    small_dot = SmallDot(all_sprites)
-    red = Red(all_sprites)
-    yellow = Yellow(all_sprites)
-    green = Green(all_sprites)
-    blue = Blue(all_sprites)
-    player = Player(all_sprites)
+    dot = Dot()
+    small_dot = SmallDot()
+    red = Red()
+    yellow = Yellow()
+    green = Green()
+    blue = Blue()
+    player = Player()
+
+    all_sprites.add(dot)
+    all_sprites.add(small_dot)
+    all_sprites.add(red)
+    all_sprites.add(yellow)
+    all_sprites.add(green)
+    all_sprites.add(blue)
+    all_sprites.add(player)
+
     Border(5, 5, width - 5, 5)
     Border(5, 400 - 5, width - 5, 400 - 5)
     Border(5, 5, 5, 400 - 5)
     Border(width - 5, 5, width - 5, 400 - 5)
+
     running = True
+    flag = True
     font = pygame.font.Font(None, 30)
     while running:
         for event in pygame.event.get():
@@ -312,6 +357,49 @@ def the_game():
                 running = False
             if event.type == pygame.KEYDOWN:
                 all_sprites.update(event)
+
+        if pygame.sprite.collide_mask(player, red):
+            if red.edible:
+                all_sprites.remove(red)
+                SCORE += 200
+            else:
+                all_sprites.remove(player)
+                flag = False
+
+        if pygame.sprite.collide_mask(player, yellow):
+            if red.edible:
+                all_sprites.remove(yellow)
+                SCORE += 200
+            else:
+                all_sprites.remove(player)
+                flag = False
+
+        if pygame.sprite.collide_mask(player, green):
+            if red.edible:
+                all_sprites.remove(green)
+                SCORE += 200
+            else:
+                all_sprites.remove(player)
+                flag = False
+
+        if pygame.sprite.collide_mask(player, blue):
+            if red.edible:
+                all_sprites.remove(blue)
+                SCORE += 200
+            else:
+                all_sprites.remove(player)
+                flag = False
+
+        if pygame.sprite.collide_mask(player, small_dot):
+            all_sprites.remove(small_dot)
+            SCORE += 10
+
+        if pygame.sprite.collide_mask(player, dot):
+            all_sprites.remove(dot)
+            red.edible = True
+            yellow.edible = True
+            green.edible = True
+            blue.edible = True
 
         heart1_image = load_image('heart.png')
         heart1_image.set_colorkey(pygame.Color('white'))
@@ -337,7 +425,8 @@ def the_game():
         score_rect.x = 400
         score_rect.y = 500
 
-        all_sprites.update()
+        if flag:
+            all_sprites.update()
         screen.fill(pygame.Color('black'))
         screen.blit(heart1_image, heart1_rect)
         screen.blit(heart2_image, heart2_rect)
