@@ -362,51 +362,51 @@ def the_game():
 
         if pygame.sprite.collide_mask(player, red):
             if red.edible:
-                all_sprites.remove(red)
+                red.mask.clear()
                 red.kill()
                 SCORE += 200
             else:
-                all_sprites.remove(player)
+                player.mask.clear()
                 player.kill()
                 flag = False
 
         if pygame.sprite.collide_mask(player, yellow):
-            if red.edible:
-                all_sprites.remove(yellow)
+            if yellow.edible:
+                yellow.mask.clear()
                 yellow.kill()
                 SCORE += 200
             else:
-                all_sprites.remove(player)
+                player.mask.clear()
                 player.kill()
                 flag = False
 
         if pygame.sprite.collide_mask(player, green):
-            if red.edible:
-                all_sprites.remove(green)
+            if green.edible:
+                green.mask.clear()
                 green.kill()
                 SCORE += 200
             else:
-                all_sprites.remove(player)
+                player.mask.clear()
                 player.kill()
                 flag = False
 
         if pygame.sprite.collide_mask(player, blue):
             if red.edible:
-                all_sprites.remove(blue)
+                blue.mask.clear()
                 blue.kill()
                 SCORE += 200
             else:
-                all_sprites.remove(player)
+                player.mask.clear()
                 player.kill()
                 flag = False
 
         if pygame.sprite.collide_mask(player, small_dot):
-            all_sprites.remove(small_dot)
+            small_dot.mask.clear()
             small_dot.kill()
             SCORE += 10
 
         if pygame.sprite.collide_mask(player, dot):
-            all_sprites.remove(dot)
+            dot.mask.clear()
             dot.kill()
             red.edible = True
             yellow.edible = True
