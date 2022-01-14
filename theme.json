@@ -1,0 +1,53 @@
+{
+     "button":
+     {
+         "misc":
+         {
+             "border_width": "0",
+             "shadow_width": "0"
+         }
+    },
+    "@start_screen_buttons":
+     {
+    },
+    "#start_button":
+     {
+         "colours":
+         {
+             "normal_bg":"#00000000",
+             "hovered_bg":"#00000000"
+
+         },
+         "images":
+         {
+              "normal_image":
+              {
+                 "path": "data/GUI/start_button.png"
+              },
+             "hovered_image":
+             {
+                 "path": "data/GUI/start_button.png"
+             }
+        }
+     },
+     "#records_button":
+     {
+         "colours":
+         {
+             "normal_bg":"#00000000",
+             "hovered_bg":"#00000000"
+
+         },
+         "images":
+         {
+              "normal_image":
+              {
+                 "path": "data/GUI/records_button.png"
+              },
+             "hovered_image":
+             {
+                 "path": "data/GUI/records_button.png"
+             }
+        }
+     }
+}
