@@ -2,7 +2,8 @@ import random
 import pygame
 import sys
 import os
-
+import pygame_gui
+from pygame_gui.core import ObjectID
 
 pygame.init()
 size = width, height = 600, 600
@@ -350,30 +351,35 @@ def the_game():
 
 
 def start_screen():
-    intro_text = ["ЗАСТАВКА", "",
-                  "Правила игры",
-                  "Если в правилах несколько строк,",
-                  "приходится выводить их построчно"]
+    start_screen_manager = pygame_gui.UIManager((600, 600), 'theme.json')
+    start_button = pygame_gui.elements.UIButton(
+        relative_rect=pygame.Rect((175, 120), (232, 76)),
+        text='',
+        manager=start_screen_manager,
+        object_id=ObjectID(class_id='@start_screen_buttons',
+                           object_id='#start_button'))
 
-    screen.fill(pygame.color.Color('black'))
-    font = pygame.font.Font(None, 30)
-    text_coord = 150
-    for line in intro_text:
-        string_rendered = font.render(line, True, pygame.Color('white'))
-        intro_rect = string_rendered.get_rect()
-        text_coord += 10
-        intro_rect.top = text_coord
-        intro_rect.x = 10
-        text_coord += intro_rect.height
-        screen.blit(string_rendered, intro_rect)
-
-    while True:
-        for event in pygame.event.get():
+    records_button = pygame_gui.elements.UIButton(
+        relative_rect=pygame.Rect((175, 220), (232, 76)),
+        text='',
+        manager=start_screen_manager,
+        object_id=ObjectID(class_id='@start_screen_buttons',
+                           object_id='#records_button'))
+    background = pygame.image.load(r"data\GUI\background.png")
+    screen.blit(background, (0, 0))
+    running = True
+    while running:
+        events = pygame.event.get()
+        for event in events:
             if event.type == pygame.QUIT:
-                the_game()
-            elif event.type == pygame.KEYDOWN or \
-                    event.type == pygame.MOUSEBUTTONDOWN:
-                the_game()
+                running = False
+            elif event.type == pygame_gui.UI_BUTTON_PRESSED:
+                if event.ui_element == start_button:
+                    the_game()
+            start_screen_manager.process_events(event)
+        start_screen_manager.update(FPS)
+        start_screen_manager.draw_ui(screen)
+
         pygame.display.flip()
         clock.tick(FPS)
 
