@@ -348,6 +348,8 @@ def the_game():
     Border(5, 5, 5, 400 - 5)
     Border(width - 5, 5, width - 5, 400 - 5)
 
+    ticks = 0
+
     running = True
     flag = True
     font = pygame.font.Font(None, 30)
@@ -361,45 +363,64 @@ def the_game():
         if pygame.sprite.collide_mask(player, red):
             if red.edible:
                 all_sprites.remove(red)
+                red.kill()
                 SCORE += 200
             else:
                 all_sprites.remove(player)
+                player.kill()
                 flag = False
 
         if pygame.sprite.collide_mask(player, yellow):
             if red.edible:
                 all_sprites.remove(yellow)
+                yellow.kill()
                 SCORE += 200
             else:
                 all_sprites.remove(player)
+                player.kill()
                 flag = False
 
         if pygame.sprite.collide_mask(player, green):
             if red.edible:
                 all_sprites.remove(green)
+                green.kill()
                 SCORE += 200
             else:
                 all_sprites.remove(player)
+                player.kill()
                 flag = False
 
         if pygame.sprite.collide_mask(player, blue):
             if red.edible:
                 all_sprites.remove(blue)
+                blue.kill()
                 SCORE += 200
             else:
                 all_sprites.remove(player)
+                player.kill()
                 flag = False
 
         if pygame.sprite.collide_mask(player, small_dot):
             all_sprites.remove(small_dot)
+            small_dot.kill()
             SCORE += 10
 
         if pygame.sprite.collide_mask(player, dot):
             all_sprites.remove(dot)
+            dot.kill()
             red.edible = True
             yellow.edible = True
             green.edible = True
             blue.edible = True
+            ticks = 200
+
+        if ticks == 0:
+            red.edible = False
+            yellow.edible = False
+            green.edible = False
+            blue.edible = False
+        else:
+            ticks -= 1
 
         heart1_image = load_image('heart.png')
         heart1_image.set_colorkey(pygame.Color('white'))
