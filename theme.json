@@ -49,5 +49,28 @@
                  "path": "data/GUI/records_button.png"
              }
         }
+     },
+     "@records_screen_buttons":
+     {
+    },
+    "#exit_button":
+     {
+         "colours":
+         {
+             "normal_bg":"#00000000",
+             "hovered_bg":"#00000000"
+
+         },
+         "images":
+         {
+              "normal_image":
+              {
+                 "path": "data/GUI/exit_button.png"
+              },
+             "hovered_image":
+             {
+                 "path": "data/GUI/exit_button.png"
+             }
+        }
      }
 }

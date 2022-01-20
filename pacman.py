@@ -3,6 +3,7 @@ import pygame
 import sys
 import os
 import pygame_gui
+import sqlite3
 from pygame_gui.core import ObjectID
 
 pygame.init()
@@ -460,6 +461,72 @@ def the_game():
     terminate()
 
 
+def database_query(query):
+    con = sqlite3.connect('data/database.db')
+    cur = con.cursor()
+    return list(map(list, cur.execute(query).fetchall()))
+
+
+def transition_screen(reverse=False):
+    if reverse:
+        for i in range(26, 1, -1):
+            background = pygame.image.load(r"data/GUI/bck/" + str(i) + ".jpg")
+            screen.blit(background, (0, 0))
+            pygame.display.flip()
+            clock.tick(FPS)
+    else:
+        for i in range(1, 26):
+            background = pygame.image.load(r"data/GUI/bck/" + str(i) + ".jpg")
+            screen.blit(background, (0, 0))
+            pygame.display.flip()
+            clock.tick(FPS)
+
+
+def records_screen():
+    records_screen_manager = pygame_gui.UIManager((600, 600), 'theme.json')
+    exit_button = pygame_gui.elements.UIButton(
+        relative_rect=pygame.Rect((226, 545), (131, 42)),
+        text='',
+        manager=records_screen_manager,
+        object_id=ObjectID(class_id='@records_screen_buttons',
+                           object_id='#exit_button'))
+    scoring_list = sorted(database_query("SELECT * FROM Scoring"),
+                          key=lambda x: x[2], reverse=True)
+    if len(scoring_list) < 10:
+        count = len(scoring_list)
+    else:
+        count = 10
+    f1 = pygame.font.Font('data/fonts/arcade-n.ttf', 20)
+    if count != 0:
+        for i in range(count):
+            text = f1.render(
+                str(i + 1) + ' ' + scoring_list[i][1] + '  ' + str(
+                    scoring_list[i][2]) + ' pts', 1, (180, 0, 0))
+            screen.blit(text, (100, 80 + i * 46))
+    else:
+        text = f1.render('there is no any players!', 1(180, 0, 0))
+        screen.blit(text, (100, 250))
+    pygame.display.flip()
+    running = True
+    while running:
+        events = pygame.event.get()
+        for event in events:
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame_gui.UI_BUTTON_PRESSED:
+                if event.ui_element == exit_button:
+                    transition_screen()
+                    transition_screen(True)
+                    start_screen()
+                    running = False
+            records_screen_manager.process_events(event)
+        records_screen_manager.update(FPS)
+        records_screen_manager.draw_ui(screen)
+
+        pygame.display.flip()
+        clock.tick(FPS)
+
+
 def start_screen():
     start_screen_manager = pygame_gui.UIManager((600, 600), 'theme.json')
     start_button = pygame_gui.elements.UIButton(
@@ -475,7 +542,7 @@ def start_screen():
         manager=start_screen_manager,
         object_id=ObjectID(class_id='@start_screen_buttons',
                            object_id='#records_button'))
-    background = pygame.image.load(r"data\GUI\background.png")
+    background = pygame.image.load(r"data/GUI/background.png")
     screen.blit(background, (0, 0))
     running = True
     while running:
@@ -485,7 +552,14 @@ def start_screen():
                 running = False
             elif event.type == pygame_gui.UI_BUTTON_PRESSED:
                 if event.ui_element == start_button:
+                    transition_screen()
                     the_game()
+                    running = False
+                elif event.ui_element == records_button:
+                    transition_screen()
+                    transition_screen(True)
+                    running = False
+                    records_screen()
             start_screen_manager.process_events(event)
         start_screen_manager.update(FPS)
         start_screen_manager.draw_ui(screen)
