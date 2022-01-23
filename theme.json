@@ -72,5 +72,29 @@
                  "path": "data/GUI/exit_button.png"
              }
         }
+     },
+     "@init_screen_buttons":
+     {
+    },
+    "#text_box":
+     {
+         "colours":
+         {
+             "dark_bg": "#00000000",
+             "selected_bg": "#00000000",
+             "normal_text": "#FFFF00",
+             "selected_text": "#00000000",
+             "normal_border": "#00000000"
+
+         },
+         "font":
+         {
+             "name": "montserrat",
+             "size": "50",
+             "regular_resource": {
+                  "package": "data.fonts",
+                  "resource": "arcade_font.ttf"
+             }
+         }
      }
 }

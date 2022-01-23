@@ -464,7 +464,9 @@ def the_game():
 def database_query(query):
     con = sqlite3.connect('data/database.db')
     cur = con.cursor()
-    return list(map(list, cur.execute(query).fetchall()))
+    res = list(map(list, cur.execute(query).fetchall()))
+    con.commit()
+    return res
 
 
 def transition_screen(reverse=False):
@@ -496,15 +498,15 @@ def records_screen():
         count = len(scoring_list)
     else:
         count = 10
-    f1 = pygame.font.Font('data/fonts/arcade-n.ttf', 20)
+    arcade_font = pygame.font.Font('data/fonts/arcade-n.ttf', 20)
     if count != 0:
         for i in range(count):
-            text = f1.render(
+            text = arcade_font.render(
                 str(i + 1) + ' ' + scoring_list[i][1] + '  ' + str(
                     scoring_list[i][2]) + ' pts', 1, (180, 0, 0))
             screen.blit(text, (100, 80 + i * 46))
     else:
-        text = f1.render('there is no any players!', 1(180, 0, 0))
+        text = arcade_font.render('there is no any players!', 1, (180, 0, 0))
         screen.blit(text, (100, 250))
     pygame.display.flip()
     running = True
@@ -525,6 +527,47 @@ def records_screen():
 
         pygame.display.flip()
         clock.tick(FPS)
+
+
+def init_screen():
+    running = True
+    init_screen_manager = pygame_gui.UIManager((600, 600), 'theme.json')
+    arcade_font = pygame.font.Font('data/fonts/arcade-n.ttf', 26)
+    text = arcade_font.render('Enter your name', 1, (180, 0, 0))
+    text_input = pygame_gui.elements.UITextEntryLine(
+        relative_rect=pygame.Rect((140, 240), (300, 60)),
+        manager=init_screen_manager,
+        object_id=ObjectID(class_id='@init_screen_buttons',
+                           object_id='#text_box'))
+    text_input.set_text_length_limit(10)
+    background = pygame.image.load(r"data/GUI/background.png")
+    screen.blit(background, (0, 0))
+    while running:
+        screen.blit(background, (0, 0))
+        events = pygame.event.get()
+        screen.blit(text, (110, 150))
+        for event in events:
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN and text_input.get_text() != '':
+                    player_name = text_input.get_text().lower()
+                    player_info = database_query("SELECT * FROM Scoring "
+                                                 "WHERE PLAYER_NAME = "
+                                                 f"'{player_name}'")
+                    print(player_info)
+                    if player_info:
+                        the_game()
+                    else:
+                        database_query("INSERT INTO Scoring(PLAYER_NAME) "
+                                       f"VALUES('{player_name}')")
+                    running = False
+                    transition_screen()
+                    the_game()
+            init_screen_manager.process_events(event)
+        init_screen_manager.update(FPS)
+        init_screen_manager.draw_ui(screen)
+        pygame.display.flip()
 
 
 def start_screen():
@@ -553,8 +596,8 @@ def start_screen():
             elif event.type == pygame_gui.UI_BUTTON_PRESSED:
                 if event.ui_element == start_button:
                     transition_screen()
-                    the_game()
                     running = False
+                    init_screen()
                 elif event.ui_element == records_button:
                     transition_screen()
                     transition_screen(True)
