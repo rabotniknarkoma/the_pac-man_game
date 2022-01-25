@@ -7,7 +7,7 @@
              "shadow_width": "0"
          }
     },
-    "@start_screen_buttons":
+    "@start_screen":
      {
     },
     "#start_button":
@@ -50,7 +50,7 @@
              }
         }
      },
-     "@records_screen_buttons":
+     "@records_screen":
      {
     },
     "#exit_button":
@@ -73,7 +73,7 @@
              }
         }
      },
-     "@init_screen_buttons":
+     "@init_screen":
      {
     },
     "#text_box":
