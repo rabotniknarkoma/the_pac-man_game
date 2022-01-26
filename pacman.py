@@ -7,15 +7,13 @@ import sqlite3
 from pygame_gui.core import ObjectID
 
 pygame.init()
-size = width, height = 600, 600
-screen = pygame.display.set_mode(size)
-all_sprites = pygame.sprite.Group()
-horizontal_borders = pygame.sprite.Group()
-vertical_borders = pygame.sprite.Group()
+SIZE = WIDTH, HEIGHT = 580, 600
+screen = pygame.display.set_mode(SIZE)
 arcade_font = pygame.font.Font('data/fonts/arcade-n.ttf', 20)
-background = pygame.image.load("data/GUI/background.png")
-SCORE = 0
+INDENT = 20
 FPS = 60
+SCORE = 0
+TILE_SIZE = 30
 clock = pygame.time.Clock()
 
 
@@ -35,304 +33,204 @@ def load_image(name, color_key=None):
     return found_image
 
 
-def terminate():
-    pygame.quit()
-    sys.exit()
+IMAGES = {'RED': load_image("red.png"),
+          'GREEN': load_image("green.png"),
+          'YELLOW': load_image("yellow.png"),
+          'BLUE': load_image("blue.png"),
+          'EDIBLE': load_image("edible.png"),
+          'BACKGROUND': load_image("GUI/background.png"),
+          'TILE': load_image("square.png"),
+          'DOT': load_image("dot.png"),
+          'HEART': load_image('heart.png')}
+
+
+class Map:
+    def __init__(self, filename):
+        self.map_mask = []
+        self.barriers = pygame.sprite.Group()
+        self.entities = pygame.sprite.Group()
+        self.dots = pygame.sprite.Group()
+        with open(filename) as file:
+            for line in file:
+                self.map_mask.append(list(map(int, line.split())))
+        self.height = len(self.map_mask)
+        self.width = len(self.map_mask[0])
+        self.render()
+
+    def render(self):
+        b1 = Border(INDENT - 1, INDENT - 1,
+                    INDENT + self.width * TILE_SIZE + 1, INDENT - 1, self)
+
+        b2 = Border(INDENT - 1, INDENT - 1, INDENT - 1,
+                    INDENT + self.height * TILE_SIZE + 1, self)
+
+        b3 = Border(INDENT - 1,
+                    INDENT + self.height * TILE_SIZE + 1,
+                    INDENT + self.width * TILE_SIZE + 1,
+                    INDENT + self.height * TILE_SIZE + 1, self)
+
+        b4 = Border(INDENT + self.width * TILE_SIZE + 1,
+                    INDENT - 1, INDENT + self.width * TILE_SIZE + 1,
+                    INDENT + self.height * TILE_SIZE + 1, self)
+
+        for i in range(self.height):
+            for j in range(self.height):
+                if self.map_mask[j][i] == 1:
+                    rect = pygame.Rect(INDENT + i * TILE_SIZE,
+                                       INDENT + j * TILE_SIZE,
+                                       TILE_SIZE, TILE_SIZE)
+                    tile = Tile(rect, self)
 
 
 class Player(pygame.sprite.Sprite):
     image = load_image("pacman.png")
 
     def __init__(self, *param):
-        super().__init__(param[:-2])
+        super().__init__(param[:-3])
         self.image = Player.image
         self.image.set_colorkey(pygame.Color('white'))
         self.rect = self.image.get_rect()
         self.mask = pygame.mask.from_surface(self.image)
-        self.rect.x = param[-2]
-        self.rect.y = param[-1]
-        self.speed = 3
-        self.const = (0, '')
+        self.parent_map = param[-1]
+        self.rect.x = INDENT + param[-3] * TILE_SIZE
+        self.rect.y = INDENT + param[-2] * TILE_SIZE
+        self.speed = 2
+        self.direction = None
+        self.add(self.parent_map.entities)
 
     def update(self, *args):
-        if pygame.sprite.spritecollideany(self, horizontal_borders):
-            self.const = (0, '')
-            if self.rect.y <= 5:
-                self.rect.y = 6
-            elif self.rect.y >= 454:
-                self.rect.y = 453
-        if pygame.sprite.spritecollideany(self, vertical_borders):
-            self.const = (0, '')
-            if self.rect.x <= 5:
-                self.rect.x = 6
-            elif self.rect.x >= 555:
-                self.rect.x = 553
+        if pygame.sprite.spritecollideany(self, self.parent_map.barriers):
+            if self.direction == 'DOWN':
+                self.rect.y -= self.speed
+            elif self.direction == 'UP':
+                self.rect.y += self.speed
+            elif self.direction == 'RIGHT':
+                self.rect.x -= self.speed
+            elif self.direction == 'LEFT':
+                self.rect.x += self.speed
         if args and args[0].key == pygame.K_DOWN:
             self.image = pygame.transform.rotate(Player.image, 270)
-            self.image.set_colorkey(pygame.Color('white'))
-            self.const = (self.speed, 'y')
+            self.direction = 'DOWN'
         elif args and args[0].key == pygame.K_UP:
             self.image = pygame.transform.rotate(Player.image, 90)
-            self.image.set_colorkey(pygame.Color('white'))
-            self.const = (self.speed * -1, 'y')
+            self.direction = 'UP'
         elif args and args[0].key == pygame.K_LEFT:
             self.image = pygame.transform.flip(Player.image, True, False)
-            self.image.set_colorkey(pygame.Color('white'))
-            self.const = (self.speed * -1, 'x')
+            self.direction = 'LEFT'
         elif args and args[0].key == pygame.K_RIGHT:
             self.image = Player.image
-            self.image.set_colorkey(pygame.Color('white'))
-            self.const = (self.speed, 'x')
-        a, b = self.const
-        if b == 'x':
-            self.rect.x += a
-        elif b == 'y':
-            self.rect.y += a
+            self.direction = 'RIGHT'
+
+        self.image.set_colorkey(pygame.Color('white'))
+        if self.direction == 'DOWN':
+            self.rect.y += self.speed
+        elif self.direction == 'UP':
+            self.rect.y -= self.speed
+        elif self.direction == 'RIGHT':
+            self.rect.x += self.speed
+        elif self.direction == 'LEFT':
+            self.rect.x -= self.speed
 
 
-class Red(pygame.sprite.Sprite):
-    image = load_image("red.png")
-    new_image = load_image("edible_ghost.png")
+class Ghost(pygame.sprite.Sprite):
+    new_image = load_image("edible.png")
 
     def __init__(self, *param):
-        super().__init__(param[:-2])
-        self.image = Red.image
+        super().__init__(param[:-4])
+        self.color = param[-1]
+        self.image = IMAGES[self.color]
         self.image.set_colorkey(pygame.Color('white'))
         self.rect = self.image.get_rect()
         self.mask = pygame.mask.from_surface(self.image)
-        self.rect.x = param[-2]
-        self.rect.y = param[-1]
-        self.turn = random.randint(1, 4)
+        self.parent_map = param[-2]
+        self.rect.x = INDENT + param[-4] * TILE_SIZE
+        self.rect.y = INDENT + param[-3] * TILE_SIZE
         self.counter = 0
         self.edible = False
+        self.speed = 2
+        self.direction = 'DOWN'
+        self.add(self.parent_map.entities)
 
     def update(self, *args):
         if self.edible:
-            self.image = Red.new_image
+            self.image = IMAGES['EDIBLE']
             self.image.set_colorkey(pygame.Color('white'))
         else:
-            self.image = Red.image
+            self.image = IMAGES[self.color]
             self.image.set_colorkey(pygame.Color('white'))
-        if pygame.sprite.spritecollideany(self, horizontal_borders):
-            self.turn = random.choice([2, 4])
-            if self.rect.y <= 5:
-                self.rect.y = 6
-            elif self.rect.y >= 452:
-                self.rect.y = 451
-        elif pygame.sprite.spritecollideany(self, vertical_borders):
-            self.turn = random.choice([1, 3])
-            if self.rect.x <= 5:
-                self.rect.x = 6
-            elif self.rect.x >= 555:
-                self.rect.x = 553
+        if pygame.sprite.spritecollideany(self, self.parent_map.barriers):
+            if self.direction == 'DOWN':
+                self.direction = 'UP'
+            elif self.direction == 'UP':
+                self.direction = 'DOWN'
+            elif self.direction == 'RIGHT':
+                self.direction = 'LEFT'
+            elif self.direction == 'LEFT':
+                self.direction = 'RIGHT'
         elif self.counter >= 40:
-            self.turn = random.randint(1, 4)
+            self.direction = random.choice(['DOWN', 'UP', 'LEFT', 'RIGHT'])
             self.counter = 0
-        if self.turn == 1:
-            self.rect.y -= 2
-        elif self.turn == 2:
-            self.rect.x += 2
-        elif self.turn == 3:
-            self.rect.y += 2
-        elif self.turn == 4:
-            self.rect.x -= 2
-        self.counter += 1
-
-
-class Green(pygame.sprite.Sprite):
-    image = load_image("green.png")
-    new_image = load_image("edible_ghost.png")
-
-    def __init__(self, *param):
-        super().__init__(param[:-2])
-        self.image = Green.image
-        self.image.set_colorkey(pygame.Color('white'))
-        self.rect = self.image.get_rect()
-        self.mask = pygame.mask.from_surface(self.image)
-        self.rect.x = param[-2]
-        self.rect.y = param[-1]
-        self.turn = random.randint(1, 4)
-        self.counter = 0
-        self.edible = False
-
-    def update(self, *args):
-        if self.edible:
-            self.image = Green.new_image
-            self.image.set_colorkey(pygame.Color('white'))
-        else:
-            self.image = Green.image
-            self.image.set_colorkey(pygame.Color('white'))
-        if pygame.sprite.spritecollideany(self, horizontal_borders):
-            self.turn = random.choice([2, 4])
-            if self.rect.y <= 5:
-                self.rect.y = 6
-            elif self.rect.y >= 452:
-                self.rect.y = 451
-        elif pygame.sprite.spritecollideany(self, vertical_borders):
-            self.turn = random.choice([1, 3])
-            if self.rect.x <= 5:
-                self.rect.x = 6
-            elif self.rect.x >= 555:
-                self.rect.x = 553
-        elif self.counter >= 40:
-            self.turn = random.randint(1, 4)
-            self.counter = 0
-        if self.turn == 1:
-            self.rect.y -= 2
-        elif self.turn == 2:
-            self.rect.x += 2
-        elif self.turn == 3:
-            self.rect.y += 2
-        elif self.turn == 4:
-            self.rect.x -= 2
-        self.counter += 1
-
-
-class Yellow(pygame.sprite.Sprite):
-    image = load_image("yellow.png")
-    new_image = load_image("edible_ghost.png")
-
-    def __init__(self, *param):
-        super().__init__(param[:-2])
-        self.image = Yellow.image
-        self.image.set_colorkey(pygame.Color('white'))
-        self.rect = self.image.get_rect()
-        self.mask = pygame.mask.from_surface(self.image)
-        self.rect.x = param[-2]
-        self.rect.y = param[-1]
-        self.turn = random.randint(1, 4)
-        self.counter = 0
-        self.edible = False
-
-    def update(self, *args):
-        if self.edible:
-            self.image = Yellow.new_image
-            self.image.set_colorkey(pygame.Color('white'))
-        else:
-            self.image = Yellow.image
-            self.image.set_colorkey(pygame.Color('white'))
-        if pygame.sprite.spritecollideany(self, horizontal_borders):
-            self.turn = random.choice([2, 4])
-            if self.rect.y <= 5:
-                self.rect.y = 6
-            elif self.rect.y >= 452:
-                self.rect.y = 451
-        elif pygame.sprite.spritecollideany(self, vertical_borders):
-            self.turn = random.choice([1, 3])
-            if self.rect.x <= 5:
-                self.rect.x = 6
-            elif self.rect.x >= 555:
-                self.rect.x = 553
-        elif self.counter >= 40:
-            self.turn = random.randint(1, 4)
-            self.counter = 0
-        if self.turn == 1:
-            self.rect.y -= 2
-        elif self.turn == 2:
-            self.rect.x += 2
-        elif self.turn == 3:
-            self.rect.y += 2
-        elif self.turn == 4:
-            self.rect.x -= 2
-        self.counter += 1
-
-
-class Blue(pygame.sprite.Sprite):
-    image = load_image("blue.png")
-    new_image = load_image("edible_ghost.png")
-
-    def __init__(self, *param):
-        super().__init__(param[:-2])
-        self.image = Blue.image
-        self.image.set_colorkey(pygame.Color('white'))
-        self.rect = self.image.get_rect()
-        self.mask = pygame.mask.from_surface(self.image)
-        self.rect.x = param[-2]
-        self.rect.y = param[-1]
-        self.turn = random.randint(1, 4)
-        self.counter = 0
-        self.edible = False
-
-    def update(self, *args):
-        if self.edible:
-            self.image = Blue.new_image
-            self.image.set_colorkey(pygame.Color('white'))
-        else:
-            self.image = Blue.image
-            self.image.set_colorkey(pygame.Color('white'))
-        if pygame.sprite.spritecollideany(self, horizontal_borders):
-            self.turn = random.choice([2, 4])
-            if self.rect.y <= 5:
-                self.rect.y = 6
-            elif self.rect.y >= 452:
-                self.rect.y = 451
-        elif pygame.sprite.spritecollideany(self, vertical_borders):
-            self.turn = random.choice([1, 3])
-            if self.rect.x <= 5:
-                self.rect.x = 6
-            elif self.rect.x >= 555:
-                self.rect.x = 554
-        elif self.counter >= 40:
-            self.turn = random.randint(1, 4)
-            self.counter = 0
-        if self.turn == 1:
-            self.rect.y -= 2
-        elif self.turn == 2:
-            self.rect.x += 2
-        elif self.turn == 3:
-            self.rect.y += 2
-        elif self.turn == 4:
-            self.rect.x -= 2
+        if self.direction == 'DOWN':
+            self.rect.y += self.speed
+        elif self.direction == 'UP':
+            self.rect.y -= self.speed
+        elif self.direction == 'RIGHT':
+            self.rect.x += self.speed
+        elif self.direction == 'LEFT':
+            self.rect.x -= self.speed
         self.counter += 1
 
 
 class Border(pygame.sprite.Sprite):
-    def __init__(self, x1, y1, x2, y2):
-        super().__init__(all_sprites)
+    def __init__(self, x1, y1, x2, y2, parent_map):
+        super().__init__(parent_map.barriers)
         if x1 == x2:
-            self.add(vertical_borders)
-            self.image = pygame.Surface([1, y2 - y1])
-            self.rect = pygame.Rect(x1, y1, 1, y2 - y1)
+            self.image = pygame.Surface([1, abs(y2 - y1)])
+            self.rect = pygame.Rect(x1, y1, 1, abs(y2 - y1))
         else:
-            self.add(horizontal_borders)
             self.image = pygame.Surface([x2 - x1, 1])
             self.rect = pygame.Rect(x1, y1, x2 - x1, 1)
-
         self.image.fill(pygame.Color('white'))
 
 
-class Dot(pygame.sprite.Sprite):
-    image = load_image("dot.png")
+class Tile(pygame.sprite.Sprite):
+    def __init__(self, rect, parent_map):
+        super().__init__(parent_map.barriers)
+        self.parent_map = parent_map
+        self.image = IMAGES['TILE']
+        self.rect = rect
 
+
+class Dot(pygame.sprite.Sprite):
     def __init__(self, *param):
-        super().__init__(param[:-2])
-        self.image = Dot.image
+        super().__init__(param[:-3])
+        self.image = IMAGES['DOT']
         self.image.set_colorkey(pygame.Color('white'))
         self.rect = self.image.get_rect()
         self.mask = pygame.mask.from_surface(self.image)
-        self.rect.x = param[-2]
-        self.rect.y = param[-1]
+        self.parent_map = param[-1]
+        self.rect.x = INDENT + param[-3] * TILE_SIZE
+        self.rect.y = INDENT + param[-2] * TILE_SIZE
+        self.add(self.parent_map.dots)
 
 
 class SmallDot(pygame.sprite.Sprite):
-    image = pygame.transform.scale(load_image("dot.png"), (10, 10))
-
     def __init__(self, *param):
-        super().__init__(param[:-2])
-        self.image = SmallDot.image
+        super().__init__(param[:-3])
+        self.image = pygame.transform.scale(IMAGES['DOT'], (10, 10))
         self.image.set_colorkey(pygame.Color('white'))
         self.rect = self.image.get_rect()
         self.mask = pygame.mask.from_surface(self.image)
-        self.rect.x = param[-2]
-        self.rect.y = param[-1]
+        self.parent_map = param[-1]
+        self.rect.x = INDENT + param[-3] * TILE_SIZE
+        self.rect.y = INDENT + param[-2] * TILE_SIZE
+        self.add(self.parent_map.dots)
 
 
 class Heart(pygame.sprite.Sprite):
-    image = load_image('heart.png')
-
     def __init__(self, *param):
         super().__init__(*param[:-2])
-        self.image = Heart.image
+        self.image = IMAGES['HEART']
         self.image.set_colorkey(pygame.Color('white'))
         self.rect = self.image.get_rect()
         self.mask = pygame.mask.from_surface(self.image)
@@ -344,44 +242,33 @@ def the_game():
     global SCORE
 
     pygame.display.flip()
-    dot = Dot(43, 58)
-    small_dot = SmallDot(228, 229)
-    red = Red(10, 10)
-    yellow = Yellow(50, 10)
-    green = Green(90, 10)
-    blue = Blue(130, 10)
-    player = Player(200, 300)
-    heart1 = Heart(10, 500)
-    heart2 = Heart(40, 500)
-    heart3 = Heart(70, 500)
 
-    all_sprites.add(dot)
-    all_sprites.add(small_dot)
-    all_sprites.add(red)
-    all_sprites.add(yellow)
-    all_sprites.add(green)
-    all_sprites.add(blue)
-    all_sprites.add(player)
-    all_sprites.add(heart1)
-    all_sprites.add(heart2)
-    all_sprites.add(heart3)
-
-    b1 = Border(5, 5, width - 5, 5)
-    b2 = Border(5, 500 - 5, width - 5, 500 - 5)
-    b3 = Border(5, 5, 5, 500 - 5)
-    b4 = Border(width - 5, 5, width - 5, 500 - 5)
+    main_map = Map('data/maps/map0.txt')
+    player = Player(0, 0, main_map)
+    dot = Dot(7, 12, main_map)
+    small_dot = SmallDot(1, 6, main_map)
+    red = Ghost(14, 6, main_map, 'RED')
+    yellow = Ghost(15, 6, main_map, 'YELLOW')
+    green = Ghost(16, 6, main_map, 'GREEN')
+    blue = Ghost(17, 6, main_map, 'BLUE')
+    # heart1 = Heart(10, 500)
+    # heart2 = Heart(40, 500)
+    # heart3 = Heart(70, 500)
 
     ticks = 0
-
     running = True
     flag = True
     font = pygame.font.Font(None, 30)
     while running:
+        screen.fill(pygame.Color(0))
+        main_map.barriers.draw(screen)
+        main_map.entities.draw(screen)
+        main_map.dots.draw(screen)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.KEYDOWN:
-                all_sprites.update(event)
+                main_map.entities.update(event)
 
         if pygame.sprite.collide_mask(player, red):
             if red.edible:
@@ -444,22 +331,17 @@ def the_game():
             blue.edible = False
         else:
             ticks -= 1
-
         text = 'SCORE:' + str(SCORE)
         string_rendered = font.render(text, True, pygame.Color('white'))
         score_rect = string_rendered.get_rect()
-        score_rect.x = 400
-        score_rect.y = 500
+        score_rect.x = INDENT
+        score_rect.y = INDENT + main_map.height * TILE_SIZE + 10
 
-        if flag:
-            all_sprites.update()
-        screen.fill(pygame.Color('black'))
         screen.blit(string_rendered, score_rect)
-        all_sprites.draw(screen)
 
+        main_map.entities.update()
         clock.tick(FPS)
         pygame.display.flip()
-    terminate()
 
 
 def database_query(query):
@@ -549,7 +431,7 @@ def init_screen():
 
     running = True
     while running:
-        screen.blit(background, (0, 0))
+        screen.blit(IMAGES['BACKGROUND'], (0, 0))
         screen.blit(text, (145, 150))
 
         events = pygame.event.get()
@@ -565,7 +447,6 @@ def init_screen():
                     player_info = database_query("SELECT * FROM Scoring "
                                                  "WHERE PLAYER_NAME = "
                                                  f"'{player_name}'")
-                    print(player_info)
 
                     if not player_info:
                         database_query("INSERT INTO Scoring(PLAYER_NAME) "
@@ -598,7 +479,7 @@ def start_screen():
         object_id=ObjectID(class_id='@start_screen',
                            object_id='#records_button'))
 
-    screen.blit(background, (0, 0))
+    screen.blit(IMAGES['BACKGROUND'], (0, 0))
 
     running = True
     while running:
