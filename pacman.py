@@ -49,6 +49,7 @@ class Map:
         self.map_mask = []
         self.barriers = pygame.sprite.Group()
         self.entities = pygame.sprite.Group()
+        self.player = []
         self.dots = pygame.sprite.Group()
         with open(filename) as file:
             for line in file:
@@ -97,17 +98,54 @@ class Player(pygame.sprite.Sprite):
         self.speed = 2
         self.direction = None
         self.add(self.parent_map.entities)
+        self.parent_map.player.append(self)
+
+    def get_tile_location(self):
+        tile_x = (self.rect.x - INDENT) // TILE_SIZE
+        if TILE_SIZE - (self.rect.x - INDENT) % TILE_SIZE < (
+                self.rect.x - INDENT) % TILE_SIZE:
+            tile_x = ((self.rect.x - INDENT) + TILE_SIZE
+                      - (self.rect.x - INDENT) % TILE_SIZE) // TILE_SIZE
+
+        tile_y = (self.rect.y - INDENT) // TILE_SIZE
+        if TILE_SIZE - (self.rect.y - INDENT) % TILE_SIZE < (
+                self.rect.y - INDENT) % TILE_SIZE:
+            tile_y = ((self.rect.y - INDENT) + TILE_SIZE
+                      - (self.rect.y - INDENT) % TILE_SIZE) // TILE_SIZE
+        return tile_x, tile_y
 
     def update(self, *args):
         if pygame.sprite.spritecollideany(self, self.parent_map.barriers):
+            x_calibration = (self.rect.x - INDENT) % TILE_SIZE
+            if TILE_SIZE - x_calibration < x_calibration:
+                x_calibration = x_calibration - TILE_SIZE
+            y_calibration = (self.rect.y - INDENT) % TILE_SIZE
+            if TILE_SIZE - y_calibration < y_calibration:
+                y_calibration = y_calibration - TILE_SIZE
+
+            next_free = False if self.parent_map.map_mask[
+                (self.rect.x - INDENT + x_calibration) // TILE_SIZE][
+                (self.rect.y - INDENT + y_calibration) // TILE_SIZE] else True
             if self.direction == 'DOWN':
-                self.rect.y -= self.speed
+                if x_calibration > 8 or x_calibration == 0 or not next_free:
+                    self.rect.y -= self.speed
+                else:
+                    self.rect.x -= x_calibration
             elif self.direction == 'UP':
-                self.rect.y += self.speed
+                if x_calibration > 8 or x_calibration == 0 or not next_free:
+                    self.rect.y += self.speed
+                else:
+                    self.rect.x -= x_calibration
             elif self.direction == 'RIGHT':
-                self.rect.x -= self.speed
+                if y_calibration > 8 or y_calibration == 0 or not next_free:
+                    self.rect.x -= self.speed
+                else:
+                    self.rect.y -= y_calibration
             elif self.direction == 'LEFT':
-                self.rect.x += self.speed
+                if y_calibration > 8 or y_calibration == 0 or not next_free:
+                    self.rect.x += self.speed
+                else:
+                    self.rect.y -= y_calibration
         if args and args[0].key == pygame.K_DOWN:
             self.image = pygame.transform.rotate(Player.image, 270)
             self.direction = 'DOWN'
@@ -148,28 +186,53 @@ class Ghost(pygame.sprite.Sprite):
         self.counter = 0
         self.edible = False
         self.speed = 2
-        self.direction = 'DOWN'
+        self.next_location = None
+        self.direction = random.choice(['DOWN', 'UP', 'LEFT', 'RIGHT'])
         self.add(self.parent_map.entities)
 
-    def update(self, *args):
-        if self.edible:
-            self.image = IMAGES['EDIBLE']
-            self.image.set_colorkey(pygame.Color('white'))
-        else:
-            self.image = IMAGES[self.color]
-            self.image.set_colorkey(pygame.Color('white'))
+    def get_tile_location(self):
+        tile_x = (self.rect.x - INDENT) // TILE_SIZE
+        if TILE_SIZE - (self.rect.x - INDENT) % TILE_SIZE < (
+                self.rect.x - INDENT) % TILE_SIZE:
+            tile_x = ((self.rect.x - INDENT) + TILE_SIZE
+                      - (self.rect.x - INDENT) % TILE_SIZE) // TILE_SIZE
+
+        tile_y = (self.rect.y - INDENT) // TILE_SIZE
+        if TILE_SIZE - (self.rect.y - INDENT) % TILE_SIZE < (
+                self.rect.y - INDENT) % TILE_SIZE:
+            tile_y = ((self.rect.y - INDENT) + TILE_SIZE
+                      - (self.rect.y - INDENT) % TILE_SIZE) // TILE_SIZE
+        return tile_x, tile_y
+
+    def random_moving(self):
         if pygame.sprite.spritecollideany(self, self.parent_map.barriers):
+            location = self.get_tile_location()
+
             if self.direction == 'DOWN':
-                self.direction = 'UP'
+                self.rect.y -= self.speed
             elif self.direction == 'UP':
-                self.direction = 'DOWN'
+                self.rect.y += self.speed
             elif self.direction == 'RIGHT':
-                self.direction = 'LEFT'
+                self.rect.x -= self.speed
             elif self.direction == 'LEFT':
-                self.direction = 'RIGHT'
-        elif self.counter >= 40:
-            self.direction = random.choice(['DOWN', 'UP', 'LEFT', 'RIGHT'])
-            self.counter = 0
+                self.rect.x += self.speed
+
+            direction_choices = []
+
+            if location[0] != 0:
+                if self.parent_map.map_mask[location[1]][location[0] - 1] == 0:
+                    direction_choices.append('LEFT')
+            if location[0] != self.parent_map.width - 1:
+                if self.parent_map.map_mask[location[1]][location[0] + 1] == 0:
+                    direction_choices.append('RIGHT')
+            if location[1] != 0:
+                if self.parent_map.map_mask[location[1] - 1][location[0]] == 0:
+                    direction_choices.append('UP')
+            if location[1] != self.parent_map.height - 1:
+                if self.parent_map.map_mask[location[1] + 1][location[0]] == 0:
+                    direction_choices.append('DOWN')
+            self.direction = random.choice(direction_choices)
+
         if self.direction == 'DOWN':
             self.rect.y += self.speed
         elif self.direction == 'UP':
@@ -178,7 +241,78 @@ class Ghost(pygame.sprite.Sprite):
             self.rect.x += self.speed
         elif self.direction == 'LEFT':
             self.rect.x -= self.speed
-        self.counter += 1
+
+    def find_path_step(self, start, target):
+        INF = 1000
+        x, y = start
+        distance = [[INF] * self.parent_map.width for _ in range(
+            self.parent_map.height)]
+        distance[y][x] = 0
+        prev = [[None] * self.parent_map.width for _ in range(
+            self.parent_map.height)]
+        queue = [(x, y)]
+        while queue:
+            x, y = queue.pop(0)
+            for dx, dy in (1, 0), (0, 1), (-1, 0), (0, -1):
+                next_x, next_y = x + dx, y + dy
+                if 0 <= next_x < self.parent_map.width \
+                        and 0 <= next_y < self.parent_map.height \
+                        and self.parent_map.map_mask[next_y][next_x] == 0 \
+                        and distance[next_y][next_x] == INF:
+                    distance[next_y][next_x] = distance[y][x] + 1
+                    prev[next_y][next_x] = (x, y)
+                    queue.append((next_x, next_y))
+        x, y = target
+        if distance[y][x] == INF or start == target:
+            return start
+        while prev[y][x] != start:
+            x, y = prev[y][x]
+        return x, y
+
+    def persecution(self):
+        self_location = self.get_tile_location()
+        player_location = random.choice(
+            self.parent_map.player).get_tile_location()
+
+        if self.next_location is None:
+            self.next_location = self.find_path_step(self_location,
+                                                     player_location)
+        if self.next_location[1] * TILE_SIZE - self.rect.y + INDENT > 0:
+            self.rect.y += self.speed
+        elif self.next_location[1] * TILE_SIZE - self.rect.y + INDENT < 0:
+            self.rect.y -= self.speed
+        elif self.next_location[0] * TILE_SIZE - self.rect.x + INDENT > 0:
+            self.rect.x += self.speed
+        elif self.next_location[0] * TILE_SIZE - self.rect.x + INDENT < 0:
+            self.rect.x -= self.speed
+        else:
+            self.next_location = self.find_path_step(self_location,
+                                                     player_location)
+
+    def update(self, *args):
+        if self.edible:
+            self.image = IMAGES['EDIBLE']
+            self.image.set_colorkey(pygame.Color('white'))
+        else:
+            self.image = IMAGES[self.color]
+            self.image.set_colorkey(pygame.Color('white'))
+
+        if self.counter < 500:
+            self.random_moving()
+            self.counter += 1
+        elif self.counter == 500:
+            if (self.rect.x - INDENT) % TILE_SIZE != 0:
+                self.rect.x += self.speed
+            elif (self.rect.y - INDENT) % TILE_SIZE != 0:
+                self.rect.y += self.speed
+            else:
+                self.counter += 1
+        elif 41 <= self.counter < 1300:
+            self.persecution()
+            self.counter += 1
+        else:
+            self.counter = 0
+            self.random_moving()
 
 
 class Border(pygame.sprite.Sprite):
@@ -244,13 +378,14 @@ def the_game():
     pygame.display.flip()
 
     main_map = Map('data/maps/map0.txt')
-    player = Player(0, 0, main_map)
+    player = Player(1, 1, main_map)
     dot = Dot(7, 12, main_map)
     small_dot = SmallDot(1, 6, main_map)
     red = Ghost(14, 6, main_map, 'RED')
     yellow = Ghost(15, 6, main_map, 'YELLOW')
+    blue = Ghost(13, 6, main_map, 'BLUE')
     green = Ghost(16, 6, main_map, 'GREEN')
-    blue = Ghost(17, 6, main_map, 'BLUE')
+
     # heart1 = Heart(10, 500)
     # heart2 = Heart(40, 500)
     # heart3 = Heart(70, 500)
@@ -279,7 +414,6 @@ def the_game():
                 player.mask.clear()
                 player.kill()
                 flag = False
-
         if pygame.sprite.collide_mask(player, yellow):
             if yellow.edible:
                 yellow.mask.clear()
@@ -319,16 +453,16 @@ def the_game():
             dot.mask.clear()
             dot.kill()
             red.edible = True
-            yellow.edible = True
-            green.edible = True
             blue.edible = True
+            green.edible = True
+            yellow.edible = True
             ticks = 200
 
         if ticks == 0:
             red.edible = False
-            yellow.edible = False
-            green.edible = False
             blue.edible = False
+            green.edible = False
+            yellow.edible = False
         else:
             ticks -= 1
         text = 'SCORE:' + str(SCORE)
@@ -509,4 +643,4 @@ def start_screen():
         pygame.display.flip()
 
 
-start_screen()
+the_game()
