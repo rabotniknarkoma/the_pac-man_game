@@ -9,44 +9,44 @@ from pygame_gui.core import ObjectID
 pygame.init()
 SIZE = WIDTH, HEIGHT = 580, 600
 screen = pygame.display.set_mode(SIZE)
-arcade_font = pygame.font.Font('data/fonts/arcade-n.ttf', 20)
-EDIBLE_TIME = 400  # сделать константой уровня/карты
-INDENT = 20  # сделать константой уровня
 FPS = 60
-SCORE = 0  # сделать константой уровня
-TILE_SIZE = 30  # сделать константой карты
 clock = pygame.time.Clock()
 
 
-def load_image(name, color_key=None):
-    fullname = os.path.join('data', name)
-    if not os.path.isfile(fullname):
-        print(f"Файл с изображением '{fullname}' не найден")
-        sys.exit()
-    found_image = pygame.image.load(fullname)
-    if color_key is not None:
-        found_image = found_image.convert()
-        if color_key == -1:
-            color_key = found_image.get_at((0, 0))
-        found_image.set_colorkey(color_key)
-    else:
-        found_image = found_image.convert_alpha()
-    return found_image
+class LoadImage:
+    def __call__(self, name):
+        color_key = None
+        fullname = os.path.join('data', name)
+        if not os.path.isfile(fullname):
+            print(f"Файл с изображением '{fullname}' не найден")
+            sys.exit()
+        found_image = pygame.image.load(fullname)
+        if color_key is not None:
+            found_image = found_image.convert()
+            if color_key == -1:
+                color_key = found_image.get_at((0, 0))
+            found_image.set_colorkey(color_key)
+        else:
+            found_image = found_image.convert_alpha()
+        return found_image
 
 
-IMAGES = {'RED': load_image("red.png"),
-          'GREEN': load_image("green.png"),
-          'YELLOW': load_image("yellow.png"),
-          'BLUE': load_image("blue.png"),
-          'EDIBLE': load_image("edible.png"),
-          'BACKGROUND': load_image("GUI/background.png"),
-          'TILE': load_image("square.png"),
-          'DOT': load_image("dot.png"),
-          'HEART': load_image('heart.png')}
+IMAGES = {'PACMAN': LoadImage()('pacman.png'),
+          'RED': LoadImage()("red.png"),
+          'GREEN': LoadImage()("green.png"),
+          'YELLOW': LoadImage()("yellow.png"),
+          'BLUE': LoadImage()("blue.png"),
+          'EDIBLE': LoadImage()("edible.png"),
+          'BACKGROUND': LoadImage()("GUI/background.png"),
+          'TILE': LoadImage()("square.png"),
+          'DOT': LoadImage()("dot.png"),
+          'HEART': LoadImage()('heart.png')}
 
 
 class Map:
     def __init__(self, filename, level):
+        self.constants = {'TILE_SIZE': 30,
+                          'INDENT': 20}
         self.map_mask = []
         with open(filename) as file:
             for line in file:
@@ -80,6 +80,8 @@ class Map:
             Dot(i[1], i[0], self)
 
     def render(self):
+        TILE_SIZE = self.constants['TILE_SIZE']
+        INDENT = self.constants['INDENT']
         b1 = Border(INDENT - 1, INDENT - 1,
                     INDENT + self.width * TILE_SIZE + 1, INDENT - 1, self)
 
@@ -105,7 +107,7 @@ class Map:
 
 
 class Player(pygame.sprite.Sprite):
-    image = load_image("pacman.png")
+    image = IMAGES['PACMAN']
 
     def __init__(self, *param):
         super().__init__(param[:-3])
@@ -114,6 +116,10 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.mask = pygame.mask.from_surface(self.image)
         self.map = param[-1]
+
+        INDENT = self.map.constants['INDENT']
+        TILE_SIZE = self.map.constants['TILE_SIZE']
+
         self.rect.x = INDENT + param[-3] * TILE_SIZE
         self.rect.y = INDENT + param[-2] * TILE_SIZE
         self.speed = 2
@@ -122,6 +128,9 @@ class Player(pygame.sprite.Sprite):
         self.map.player_object = self
 
     def get_tile_location(self):
+        TILE_SIZE = self.map.constants['TILE_SIZE']
+        INDENT = self.map.constants['INDENT']
+
         tile_x = (self.rect.x - INDENT) // TILE_SIZE
         if TILE_SIZE - (self.rect.x - INDENT) % TILE_SIZE < (
                 self.rect.x - INDENT) % TILE_SIZE:
@@ -141,6 +150,9 @@ class Player(pygame.sprite.Sprite):
                 i.change_edibility()
 
     def update(self, *args):
+        TILE_SIZE = self.map.constants['TILE_SIZE']
+        INDENT = self.map.constants['INDENT']
+
         if pygame.sprite.spritecollideany(self, self.map.barriers):
             x_calibration = (self.rect.x - INDENT) % TILE_SIZE
             if TILE_SIZE - x_calibration < x_calibration:
@@ -197,7 +209,7 @@ class Player(pygame.sprite.Sprite):
 
 
 class Ghost(pygame.sprite.Sprite):
-    new_image = load_image("edible.png")
+    edible_image = IMAGES['EDIBLE']
 
     def __init__(self, *param):
         super().__init__(param[:-4])
@@ -207,6 +219,10 @@ class Ghost(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.mask = pygame.mask.from_surface(self.image)
         self.map = param[-2]
+
+        INDENT = self.map.constants['INDENT']
+        TILE_SIZE = self.map.constants['TILE_SIZE']
+
         self.rect.x = INDENT + param[-4] * TILE_SIZE
         self.rect.y = INDENT + param[-3] * TILE_SIZE
         self.moving_loop_counter = 0
@@ -219,6 +235,9 @@ class Ghost(pygame.sprite.Sprite):
         self.map.ghosts_list.append(self)
 
     def get_tile_location(self):
+        TILE_SIZE = self.map.constants['TILE_SIZE']
+        INDENT = self.map.constants['INDENT']
+
         tile_x = (self.rect.x - INDENT) // TILE_SIZE
         if TILE_SIZE - (self.rect.x - INDENT) % TILE_SIZE < (
                 self.rect.x - INDENT) % TILE_SIZE:
@@ -298,6 +317,9 @@ class Ghost(pygame.sprite.Sprite):
         return x, y
 
     def persecution(self):
+        TILE_SIZE = self.map.constants['TILE_SIZE']
+        INDENT = self.map.constants['INDENT']
+
         self_location = self.get_tile_location()
         player_location = self.map.player_object.get_tile_location()
 
@@ -325,9 +347,12 @@ class Ghost(pygame.sprite.Sprite):
             self.edible = True
             self.image = IMAGES['EDIBLE']
             self.image.set_colorkey(pygame.Color('white'))
-            self.edible_counter = EDIBLE_TIME
+            self.edible_counter = self.map.level.constants['EDIBLE_TIME']
 
     def update(self, *args):
+        TILE_SIZE = self.map.constants['TILE_SIZE']
+        INDENT = self.map.constants['INDENT']
+
         if self.edible_counter > 1:
             self.edible_counter -= 1
         elif self.edible_counter == 1:
@@ -338,26 +363,31 @@ class Ghost(pygame.sprite.Sprite):
             if self.edible:
                 self.mask.clear()
                 self.kill()
-                self.map.level.score += 200  # сделать константой уровня
+                self.map.level.score += self.map.level.constants[
+                    'POINTS_FOR_GHOSTS']
             else:
                 self.map.player_object.mask.clear()
                 self.map.player_object.kill()
-                clock.tick(2000)
+                pygame.time.wait(1000)
                 self.map.level.render()
 
-        if self.moving_loop_counter < 500:  # сделать константой уровня
-            self.random_moving()
-            self.moving_loop_counter += 1
-        elif self.moving_loop_counter == 500:
-            if (self.rect.x - INDENT) % TILE_SIZE != 0:
-                self.rect.x += self.speed
-            elif (self.rect.y - INDENT) % TILE_SIZE != 0:
-                self.rect.y += self.speed
-            else:
+        if not self.edible:
+            if self.moving_loop_counter < 500:  # сделать константой уровня
+                self.random_moving()
                 self.moving_loop_counter += 1
-        elif self.moving_loop_counter < 1300:  # сделать константой уровня
-            self.persecution()
-            self.moving_loop_counter += 1
+            elif self.moving_loop_counter == 500:
+                if (self.rect.x - INDENT) % TILE_SIZE != 0:
+                    self.rect.x += self.speed
+                elif (self.rect.y - INDENT) % TILE_SIZE != 0:
+                    self.rect.y += self.speed
+                else:
+                    self.moving_loop_counter += 1
+            elif self.moving_loop_counter < 1300:  # сделать константой уровня
+                self.persecution()
+                self.moving_loop_counter += 1
+            else:
+                self.moving_loop_counter = 0
+                self.random_moving()
         else:
             self.moving_loop_counter = 0
             self.random_moving()
@@ -386,13 +416,22 @@ class Tile(pygame.sprite.Sprite):
 class Dot(pygame.sprite.Sprite):
     def __init__(self, *param):
         super().__init__(param[:-3])
-        self.image = IMAGES['DOT']
+        self.map = param[-1]
+
+        INDENT = self.map.constants['INDENT']
+        TILE_SIZE = self.map.constants['TILE_SIZE']
+
+        self.image = pygame.transform.scale(IMAGES['DOT'], (TILE_SIZE // 2,
+                                                            TILE_SIZE // 2))
         self.image.set_colorkey(pygame.Color('white'))
         self.rect = self.image.get_rect()
         self.mask = pygame.mask.from_surface(self.image)
-        self.map = param[-1]
-        self.rect.x = 7 + INDENT + param[-3] * TILE_SIZE  # сделать адекватную
-        self.rect.y = 7 + INDENT + param[-2] * TILE_SIZE  # отцентровку
+
+        self.rect.x = (TILE_SIZE - TILE_SIZE // 2) // 2 + INDENT + param[
+            -3] * TILE_SIZE
+        self.rect.y = (TILE_SIZE - TILE_SIZE // 2) // 2 + INDENT + param[
+            -2] * TILE_SIZE
+
         self.add(self.map.dots)
 
     def update(self):
@@ -400,27 +439,35 @@ class Dot(pygame.sprite.Sprite):
             self.map.player_object.can_eat_ghosts()
             self.mask.clear()
             self.kill()
-            self.map.level.score += 20  # сделать константой уровня
+            self.map.level.score += self.map.level.constants['POINTS_FOR_DOTS']
 
 
 class SmallDot(pygame.sprite.Sprite):
     def __init__(self, *param):
         super().__init__(param[:-3])
-        self.image = pygame.transform.scale(IMAGES['DOT'], (6, 6))
+        self.map = param[-1]
+
+        INDENT = self.map.constants['INDENT']
+        TILE_SIZE = self.map.constants['TILE_SIZE']
+
+        self.image = pygame.transform.scale(IMAGES['DOT'], (TILE_SIZE // 5,
+                                                            TILE_SIZE // 5))
         self.image.set_colorkey(pygame.Color('white'))
         self.rect = self.image.get_rect()
         self.mask = pygame.mask.from_surface(self.image)
-        self.map = param[-1]
-        self.rect.x = 12 + INDENT + param[-3] * TILE_SIZE  # сделать адекватное
-        self.rect.y = 12 + INDENT + param[
-            -2] * TILE_SIZE  # отцентровку (без +11)
+
+        self.rect.x = (TILE_SIZE - TILE_SIZE // 5) // 2 + INDENT + param[
+            -3] * TILE_SIZE
+        self.rect.y = (TILE_SIZE - TILE_SIZE // 5) // 2 + INDENT + param[
+            -2] * TILE_SIZE
+
         self.add(self.map.dots)
 
     def update(self):
         if pygame.sprite.spritecollideany(self, self.map.player):
             self.mask.clear()
             self.kill()
-            self.map.level.score += 20  # сделать константой уровня
+            self.map.level.score += self.map.level.constants['POINTS_FOR_DOTS']
 
 
 class Heart(pygame.sprite.Sprite):
@@ -435,29 +482,40 @@ class Heart(pygame.sprite.Sprite):
 
 
 class Level:
-    def __init__(self, user_id, ghsts, plyer, map_name):
-        self.user_id = user_id
-        self.ghsts = ghsts  # сменить названия
-        self.plyer = plyer  # сменить названия
+    def __init__(self, ghsts, plyer, map_name):
+        self.ghosts_list = ghsts  # сменить названия
+        self.player_list = plyer  # сменить названия
         self.map_name = map_name
         self.score = 0
         self.lifes = 3
         self.render()
+        self.constants = {'POINTS_FOR_DOTS': 20,
+                          'POINTS_FOR_GHOSTS': 200,
+                          'EDIBLE_TIME': 400}
 
     def render(self):
         self.main_map = Map(self.map_name, self)
-        self.red = Ghost(self.ghsts[0][0], self.ghsts[0][1], self.main_map,
-                         'RED')
-        self.yellow = Ghost(self.ghsts[1][0], self.ghsts[1][1], self.main_map,
-                            'YELLOW')
-        self.blue = Ghost(self.ghsts[2][0], self.ghsts[2][1], self.main_map,
-                          'BLUE')
-        self.green = Ghost(self.ghsts[3][0], self.ghsts[3][1], self.main_map,
-                           'GREEN')
-        self.player = Player(self.plyer[0], self.plyer[1], self.main_map)
+        self.red = Ghost(self.ghosts_list[0][0], self.ghosts_list[0][1],
+                         self.main_map, 'RED')
+        self.yellow = Ghost(self.ghosts_list[1][0], self.ghosts_list[1][1],
+                            self.main_map, 'YELLOW')
+        self.blue = Ghost(self.ghosts_list[2][0], self.ghosts_list[2][1],
+                          self.main_map, 'BLUE')
+        self.green = Ghost(self.ghosts_list[3][0], self.ghosts_list[3][1],
+                           self.main_map, 'GREEN')
+        self.player = Player(self.player_list[0], self.player_list[1],
+                             self.main_map)
+
+    def change_constants(self, change_dict):
+        for key, val in change_dict:
+            if key in self.constants:
+                self.constants[key] = val
 
     def draw_score(self):
         font = pygame.font.Font(None, 30)
+        INDENT = self.main_map.constants['INDENT']
+        TILE_SIZE = self.main_map.constants['TILE_SIZE']
+
         text = 'SCORE:' + str(self.score)
         string_rendered = font.render(text, True, pygame.Color('white'))
         score_rect = string_rendered.get_rect()
@@ -472,7 +530,8 @@ class Level:
         self.main_map.player.draw(screen)
         self.main_map.dots.draw(screen)
 
-    def run(self):
+    def run(self, user_id):
+        self.user_id = user_id
         running = True
         flag = True
 
@@ -489,11 +548,15 @@ class Level:
             self.main_map.ghosts.update()
             self.main_map.player.update()
             self.main_map.dots.update()
+
             clock.tick(FPS)
             pygame.display.flip()
 
 
 class DatabaseQuery:
+    def __init__(self):
+        pass
+
     def call(self, query):
         con = sqlite3.connect('data/database.db')
         cur = con.cursor()
@@ -503,6 +566,9 @@ class DatabaseQuery:
 
 
 class TransitionScreen:
+    def __init__(self):
+        pass
+
     def run(self, reverse=False):
         if reverse:
             rang = range(26, 1, -1)
@@ -513,13 +579,14 @@ class TransitionScreen:
             self.background = pygame.image.load(
                 "data/GUI/bck/" + str(i) + ".jpg")
             screen.blit(self.background, (0, 0))
-            pygame.display.flip()
+
             clock.tick(FPS)
+            pygame.display.flip()
 
 
 class RecordsScreen:
     def __init__(self):
-
+        self.arcade_font = pygame.font.Font('data/fonts/arcade-n.ttf', 20)
         self.records_screen_manager = pygame_gui.UIManager((600, 600),
                                                            'data/theme.json')
         self.exit_button = pygame_gui.elements.UIButton(
@@ -567,16 +634,16 @@ class RecordsScreen:
 
             self.records_screen_manager.update(FPS)
             self.records_screen_manager.draw_ui(screen)
-
             pygame.display.flip()
 
 
 class InitScreen:
     def __init__(self):
+        self.arcade_font = pygame.font.Font('data/fonts/arcade-n.ttf', 20)
         self.init_screen_manager = pygame_gui.UIManager((600, 600),
                                                         'data/theme.json')
 
-        self.text = arcade_font.render('Enter your name', 1, (180, 0, 0))
+        self.text = self.arcade_font.render('Enter your name', 1, (180, 0, 0))
 
         self.text_input = pygame_gui.elements.UITextEntryLine(
             relative_rect=pygame.Rect((140, 240), (300, 60)),
@@ -605,15 +672,29 @@ class InitScreen:
                         player_name = self.text_input.get_text().lower()
                         player_info = DatabaseQuery().call(
                             f"SELECT * FROM Scoring WHERE PLAYER_NAME"
-                            f" ='{player_name}'")
+                            f" ='{player_name}'")[0]
 
                         if not player_info:
                             DatabaseQuery().call(
                                 f"INSERT INTO Scoring(PLAYER_NAME)"
                                 f" VALUES('{player_name}')")
+                            player_info = DatabaseQuery().call(
+                                f"SELECT * FROM Scoring WHERE PLAYER_NAME"
+                                f" ='{player_name}'")[0]
+
+                        if player_info[4] == 1:
+                            TransitionScreen().run()
+                            pass
+                            # Lvl3.run(player_info[0])
+                        elif player_info[3] == 1:
+                            TransitionScreen().run()
+                            pass
+                            # Lvl2.run(player_info[0])
+                        else:
+                            TransitionScreen().run()
+                            Lvl1.run(player_info[0])
+
                         running = False
-                        TransitionScreen().run()
-                        Lvl1.run()
 
                 self.init_screen_manager.process_events(event)
 
@@ -670,6 +751,7 @@ class StartScreen:
             pygame.display.flip()
 
 
-G = [(14, 6), (15, 6), (13, 6), (16, 6)]
-Lvl1 = Level(1, G, (1, 1), 'data/maps/map0.txt')
-StartScreen().run()
+if __name__ == '__main__':
+    G = [(14, 6), (15, 6), (13, 6), (16, 6)]
+    Lvl1 = Level(G, (1, 1), 'data/maps/map0.txt')
+    StartScreen().run()
