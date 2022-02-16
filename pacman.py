@@ -38,6 +38,7 @@ IMAGES = {'PACMAN': LoadImage()('pacman.png'),
           'BLUE': LoadImage()("blue.png"),
           'EDIBLE': LoadImage()("edible.png"),
           'BACKGROUND': LoadImage()("GUI/background.png"),
+          'SIMPLE_BACKGROUND': LoadImage()("GUI/simple_background.jpg"),
           'TILE': LoadImage()("square.png"),
           'DOT': LoadImage()("dot.png"),
           'HEART': LoadImage()('heart.png')}
@@ -45,12 +46,12 @@ IMAGES = {'PACMAN': LoadImage()('pacman.png'),
 
 class Map:
     def __init__(self, filename, level):
-        self.constants = {'TILE_SIZE': 30,
-                          'INDENT': 20}
+        self.constants = {'TILE_SIZE': 24,
+                          'INDENT': 10}
         self.map_mask = []
         with open(filename) as file:
             for line in file:
-                self.map_mask.append(list(map(int, line.split())))
+                self.map_mask.append(list(map(int, list(line.rstrip('\n')))))
         self.level = level
         self.barriers = pygame.sprite.Group()
         self.ghosts = pygame.sprite.Group()
@@ -82,6 +83,8 @@ class Map:
     def render(self):
         TILE_SIZE = self.constants['TILE_SIZE']
         INDENT = self.constants['INDENT']
+        screen = pygame.display.set_mode((self.width * TILE_SIZE + 2 * INDENT,
+                                          self.height * TILE_SIZE + 2 * INDENT))
         b1 = Border(INDENT - 1, INDENT - 1,
                     INDENT + self.width * TILE_SIZE + 1, INDENT - 1, self)
 
@@ -111,19 +114,22 @@ class Player(pygame.sprite.Sprite):
 
     def __init__(self, *param):
         super().__init__(param[:-3])
-        self.image = Player.image
+        self.map = param[-1]
+        INDENT = self.map.constants['INDENT']
+        TILE_SIZE = self.map.constants['TILE_SIZE']
+
+        self.image = pygame.transform.scale(Player.image,
+                                            (TILE_SIZE, TILE_SIZE))
+        Player.image = self.image
         self.image.set_colorkey(pygame.Color('white'))
         self.rect = self.image.get_rect()
         self.mask = pygame.mask.from_surface(self.image)
-        self.map = param[-1]
-
-        INDENT = self.map.constants['INDENT']
-        TILE_SIZE = self.map.constants['TILE_SIZE']
 
         self.rect.x = INDENT + param[-3] * TILE_SIZE
         self.rect.y = INDENT + param[-2] * TILE_SIZE
         self.speed = 2
         self.direction = None
+        self.command = None
         self.add(self.map.player)
         self.map.player_object = self
 
@@ -144,58 +150,122 @@ class Player(pygame.sprite.Sprite):
                       - (self.rect.y - INDENT) % TILE_SIZE) // TILE_SIZE
         return tile_x, tile_y
 
+    def moving(self, args):
+        TILE_SIZE = self.map.constants['TILE_SIZE']
+        INDENT = self.map.constants['INDENT']
+        tile_x, tile_y = self.get_tile_location()
+        if self.command == 'LEFT_TURN':
+            if (self.rect.y - INDENT) % TILE_SIZE == 0 and \
+                    self.map.map_mask[tile_y][tile_x - 1] == 0:
+                self.image = pygame.transform.flip(Player.image, True, False)
+                self.direction = 'LEFT'
+                self.command = None
+
+
+        elif self.command == 'RIGHT_TURN':
+            if (self.rect.y - INDENT) % TILE_SIZE == 0 and \
+                    self.map.map_mask[tile_y][tile_x + 1] == 0:
+                self.image = Player.image
+                self.direction = 'RIGHT'
+                self.command = None
+
+
+        elif self.command == 'UP_TURN':
+            if (self.rect.x - INDENT) % TILE_SIZE == 0 and \
+                    self.map.map_mask[tile_y - 1][tile_x] == 0:
+                self.image = pygame.transform.rotate(Player.image, 90)
+                self.direction = 'UP'
+                self.command = None
+
+
+        elif self.command == 'DOWN_TURN':
+            if (self.rect.x - INDENT) % TILE_SIZE == 0 and \
+                    self.map.map_mask[tile_y + 1][tile_x] == 0:
+                self.image = pygame.transform.rotate(Player.image, 270)
+                self.direction = 'DOWN'
+                self.command = None
+
+
+        elif args and args[0].key == pygame.K_DOWN:
+            if (self.rect.x - INDENT) % TILE_SIZE == 0 and \
+                    tile_y != self.map.width - 1 and \
+                    self.map.map_mask[tile_y + 1][tile_x] == 0:
+                self.image = pygame.transform.rotate(Player.image, 270)
+                self.direction = 'DOWN'
+            elif self.map.map_mask[tile_y + 1][tile_x] == 0:
+                self.command = 'DOWN_TURN'
+            elif tile_y != self.map.width - 1:
+                if self.direction == 'RIGHT':
+                    if self.map.map_mask[tile_y + 1][tile_x + 1] == 0:
+                        self.command = 'DOWN_TURN'
+                elif self.direction == 'LEFT':
+                    if self.map.map_mask[tile_y + 1][tile_x - 1] == 0:
+                        self.command = 'DOWN_TURN'
+                elif self.direction == 'UP':
+                    self.direction = 'DOWN'
+
+        elif args and args[0].key == pygame.K_UP:
+            if (self.rect.x - INDENT) % TILE_SIZE == 0 and tile_y != 0 and \
+                    self.map.map_mask[tile_y - 1][tile_x] == 0:
+                self.image = pygame.transform.rotate(Player.image, 90)
+                self.direction = 'UP'
+            elif self.map.map_mask[tile_y - 1][tile_x] == 0:
+                self.command = 'UP_TURN'
+            elif tile_y != 0:
+                if self.direction == 'RIGHT':
+                    if self.map.map_mask[tile_y - 1][tile_x + 1] == 0:
+                        self.command = 'UP_TURN'
+                elif self.direction == 'LEFT':
+                    if self.map.map_mask[tile_y - 1][tile_x - 1] == 0:
+                        self.command = 'UP_TURN'
+                elif self.direction == 'DOWN':
+                    self.direction = 'UP'
+
+        elif args and args[0].key == pygame.K_LEFT:
+            if (self.rect.y - INDENT) % TILE_SIZE == 0 and tile_x != 0 and \
+                    self.map.map_mask[tile_y][tile_x - 1] == 0:
+                self.image = pygame.transform.flip(Player.image, True, False)
+                self.direction = 'LEFT'
+            elif self.map.map_mask[tile_y][tile_x - 1] == 0:
+                self.command = 'LEFT_TURN'
+            elif tile_x != 0:
+                if self.direction == 'UP':
+                    if self.map.map_mask[tile_y - 1][tile_x - 1] == 0:
+                        self.command = 'LEFT_TURN'
+                elif self.direction == 'DOWN':
+                    if self.map.map_mask[tile_y + 1][tile_x - 1] == 0:
+                        self.command = 'LEFT_TURN'
+                elif self.direction == 'RIGHT':
+                    self.direction = 'LEFT'
+
+        elif args and args[0].key == pygame.K_RIGHT:
+            if (self.rect.y - INDENT) % TILE_SIZE == 0 and \
+                    tile_x != self.map.width - 1 and \
+                    self.map.map_mask[tile_y][tile_x + 1] == 0:
+                self.image = Player.image
+                self.direction = 'RIGHT'
+            elif self.map.map_mask[tile_y][tile_x + 1] == 0:
+                self.command = 'RIGHT_TURN'
+            elif tile_x != self.map.width - 1:
+                if self.direction == 'UP':
+                    if self.map.map_mask[tile_y - 1][tile_x + 1] == 0:
+                        self.command = 'RIGHT_TURN'
+                elif self.direction == 'DOWN':
+                    if self.map.map_mask[tile_y + 1][tile_x + 1] == 0:
+                        self.command = 'RIGHT_TURN'
+                elif self.direction == 'LEFT':
+                    self.direction = 'RIGHT'
+
     def can_eat_ghosts(self):
-        if self.map.ghosts_list[0].edible == False:
-            for i in self.map.ghosts_list:
-                i.change_edibility()
+        if not self.map.ghosts_list[0].edible:
+            for ghost in self.map.ghosts_list:
+                ghost.set_edible(True)
 
     def update(self, *args):
         TILE_SIZE = self.map.constants['TILE_SIZE']
         INDENT = self.map.constants['INDENT']
 
-        if pygame.sprite.spritecollideany(self, self.map.barriers):
-            x_calibration = (self.rect.x - INDENT) % TILE_SIZE
-            if TILE_SIZE - x_calibration < x_calibration:
-                x_calibration = x_calibration - TILE_SIZE
-            y_calibration = (self.rect.y - INDENT) % TILE_SIZE
-            if TILE_SIZE - y_calibration < y_calibration:
-                y_calibration = y_calibration - TILE_SIZE
-
-            next_free = False if self.map.map_mask[
-                (self.rect.x - INDENT + x_calibration) // TILE_SIZE][
-                (self.rect.y - INDENT + y_calibration) // TILE_SIZE] else True
-            if self.direction == 'DOWN':
-                if x_calibration > 8 or x_calibration == 0 or not next_free:
-                    self.rect.y -= self.speed
-                else:
-                    self.rect.x -= x_calibration
-            elif self.direction == 'UP':
-                if x_calibration > 8 or x_calibration == 0 or not next_free:
-                    self.rect.y += self.speed
-                else:
-                    self.rect.x -= x_calibration
-            elif self.direction == 'RIGHT':
-                if y_calibration > 8 or y_calibration == 0 or not next_free:
-                    self.rect.x -= self.speed
-                else:
-                    self.rect.y -= y_calibration
-            elif self.direction == 'LEFT':
-                if y_calibration > 8 or y_calibration == 0 or not next_free:
-                    self.rect.x += self.speed
-                else:
-                    self.rect.y -= y_calibration
-        if args and args[0].key == pygame.K_DOWN:
-            self.image = pygame.transform.rotate(Player.image, 270)
-            self.direction = 'DOWN'
-        elif args and args[0].key == pygame.K_UP:
-            self.image = pygame.transform.rotate(Player.image, 90)
-            self.direction = 'UP'
-        elif args and args[0].key == pygame.K_LEFT:
-            self.image = pygame.transform.flip(Player.image, True, False)
-            self.direction = 'LEFT'
-        elif args and args[0].key == pygame.K_RIGHT:
-            self.image = Player.image
-            self.direction = 'RIGHT'
+        self.moving(args)
 
         self.image.set_colorkey(pygame.Color('white'))
         if self.direction == 'DOWN':
@@ -207,6 +277,16 @@ class Player(pygame.sprite.Sprite):
         elif self.direction == 'LEFT':
             self.rect.x -= self.speed
 
+        if pygame.sprite.spritecollideany(self, self.map.barriers):
+            if self.direction == 'UP':
+                self.rect.y += self.speed
+            elif self.direction == 'DOWN':
+                self.rect.y -= self.speed
+            elif self.direction == 'LEFT':
+                self.rect.x += self.speed
+            elif self.direction == 'RIGHT':
+                self.rect.x -= self.speed
+
 
 class Ghost(pygame.sprite.Sprite):
     edible_image = IMAGES['EDIBLE']
@@ -214,14 +294,15 @@ class Ghost(pygame.sprite.Sprite):
     def __init__(self, *param):
         super().__init__(param[:-4])
         self.color = param[-1]
-        self.image = IMAGES[self.color]
+
+        self.map = param[-2]
+        INDENT = self.map.constants['INDENT']
+        TILE_SIZE = self.map.constants['TILE_SIZE']
+        self.image = pygame.transform.scale(IMAGES[self.color],
+                                            (TILE_SIZE, TILE_SIZE))
         self.image.set_colorkey(pygame.Color('white'))
         self.rect = self.image.get_rect()
         self.mask = pygame.mask.from_surface(self.image)
-        self.map = param[-2]
-
-        INDENT = self.map.constants['INDENT']
-        TILE_SIZE = self.map.constants['TILE_SIZE']
 
         self.rect.x = INDENT + param[-4] * TILE_SIZE
         self.rect.y = INDENT + param[-3] * TILE_SIZE
@@ -338,16 +419,18 @@ class Ghost(pygame.sprite.Sprite):
             self.next_location = self.find_path_step(self_location,
                                                      player_location)
 
-    def change_edibility(self):
-        if self.edible:
+    def set_edible(self, var):
+        TILE_SIZE = self.map.constants['TILE_SIZE']
+        if not var:
             self.edible = False
-            self.image = IMAGES[self.color]
-            self.image.set_colorkey(pygame.Color('white'))
+            self.image = pygame.transform.scale(IMAGES[self.color],
+                                                (TILE_SIZE, TILE_SIZE))
         else:
             self.edible = True
-            self.image = IMAGES['EDIBLE']
-            self.image.set_colorkey(pygame.Color('white'))
+            self.image = pygame.transform.scale(IMAGES['EDIBLE'],
+                                                (TILE_SIZE, TILE_SIZE))
             self.edible_counter = self.map.level.constants['EDIBLE_TIME']
+        self.image.set_colorkey(pygame.Color('white'))
 
     def update(self, *args):
         TILE_SIZE = self.map.constants['TILE_SIZE']
@@ -356,7 +439,7 @@ class Ghost(pygame.sprite.Sprite):
         if self.edible_counter > 1:
             self.edible_counter -= 1
         elif self.edible_counter == 1:
-            self.change_edibility()
+            self.set_edible(False)
             self.edible_counter -= 1
 
         if pygame.sprite.spritecollideany(self, self.map.player):
@@ -368,8 +451,7 @@ class Ghost(pygame.sprite.Sprite):
             else:
                 self.map.player_object.mask.clear()
                 self.map.player_object.kill()
-                pygame.time.wait(1000)
-                self.map.level.render()
+                self.map.level.losing()
 
         if not self.edible:
             if self.moving_loop_counter < 500:  # сделать константой уровня
@@ -409,7 +491,9 @@ class Tile(pygame.sprite.Sprite):
     def __init__(self, rect, parent_map):
         super().__init__(parent_map.barriers)
         self.map = parent_map
-        self.image = IMAGES['TILE']
+        TILE_SIZE = self.map.constants['TILE_SIZE']
+        self.image = pygame.transform.scale(IMAGES['TILE'],
+                                            (TILE_SIZE, TILE_SIZE))
         self.rect = rect
 
 
@@ -486,8 +570,9 @@ class Level:
         self.ghosts_list = ghsts  # сменить названия
         self.player_list = plyer  # сменить названия
         self.map_name = map_name
+        self.running = True
         self.score = 0
-        self.lifes = 3
+        self.lifes = 1
         self.render()
         self.constants = {'POINTS_FOR_DOTS': 20,
                           'POINTS_FOR_GHOSTS': 200,
@@ -505,6 +590,9 @@ class Level:
                            self.main_map, 'GREEN')
         self.player = Player(self.player_list[0], self.player_list[1],
                              self.main_map)
+        # heart1
+        # heart2
+        # heart3
 
     def change_constants(self, change_dict):
         for key, val in change_dict:
@@ -523,6 +611,48 @@ class Level:
         score_rect.y = INDENT + self.main_map.height * TILE_SIZE + 10
         screen.blit(string_rendered, score_rect)
 
+    def losing(self):
+        self.lifes -= 1
+        if self.lifes != 0:
+            pygame.time.wait(1000)
+            self.render()
+        else:
+            self.running = False
+            screen.fill(pygame.Color(0))
+
+            font = pygame.font.Font('data/fonts/arcade-n.ttf', 40)
+            text = 'YOU LOSE'
+            string_rendered = font.render(text, True, pygame.Color('red'))
+            lose_rect = string_rendered.get_rect()
+            lose_rect.x = SIZE[0] // 2.5
+            lose_rect.y = SIZE[1] // 2
+            screen.blit(string_rendered, lose_rect)
+
+            font = pygame.font.Font('data/fonts/arcade-n.ttf', 10)
+            text = 'PRESS ANY KEY'
+            string_rendered = font.render(text, True, pygame.Color('white'))
+            lose_rect = string_rendered.get_rect()
+            lose_rect.x = SIZE[0] // 2
+            lose_rect.y = SIZE[1] * 0.8
+            screen.blit(string_rendered, lose_rect)
+
+            pygame.display.flip()
+
+            lose_running = True
+            counter = 10
+            while lose_running:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        lose_running = False
+                    if event.type == pygame.KEYDOWN:
+                        lose_running = False
+                        pygame.display.set_mode((StartScreen().width,
+                                                 StartScreen().height))
+                        StartScreen().run()
+                if counter == 100:
+                    lose_running = False
+                    StartScreen().run()
+
     def draw_level(self):
         screen.fill(pygame.Color(0))
         self.main_map.barriers.draw(screen)
@@ -531,16 +661,16 @@ class Level:
         self.main_map.dots.draw(screen)
 
     def run(self, user_id):
+        self.main_map.render()
         self.user_id = user_id
-        running = True
         flag = True
 
-        while running:
+        while self.running:
             self.draw_level()
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    running = False
+                    self.running = False
                 if event.type == pygame.KEYDOWN:
                     self.main_map.player.update(event)
 
@@ -586,6 +716,9 @@ class TransitionScreen:
 
 class RecordsScreen:
     def __init__(self):
+        self.width = 600
+        self.height = 600
+        pygame.display.set_mode((self.width, self.height))
         self.arcade_font = pygame.font.Font('data/fonts/arcade-n.ttf', 20)
         self.records_screen_manager = pygame_gui.UIManager((600, 600),
                                                            'data/theme.json')
@@ -596,6 +729,8 @@ class RecordsScreen:
             object_id=ObjectID(class_id='@records_screen',
                                object_id='#exit_button'))
 
+        screen.blit(IMAGES['SIMPLE_BACKGROUND'], (0, 0))
+
         scoring_list = sorted(DatabaseQuery().call("SELECT * FROM Scoring"),
                               key=lambda x: x[2], reverse=True)
         if scoring_list:
@@ -604,13 +739,13 @@ class RecordsScreen:
             else:
                 count = 10
             for i in range(count):
-                text = arcade_font.render(
+                text = self.arcade_font.render(
                     str(i + 1) + ' ' + scoring_list[i][1] + '  ' + str(
                         scoring_list[i][2]) + ' pts', 1, (180, 0, 0))
                 screen.blit(text, (100, 80 + i * 46))
         else:
-            text = arcade_font.render('there is no any players!', 1,
-                                      (180, 0, 0))
+            text = self.arcade_font.render('there is no any players!', 1,
+                                           (180, 0, 0))
             screen.blit(text, (100, 250))
 
     def run(self):
@@ -639,6 +774,9 @@ class RecordsScreen:
 
 class InitScreen:
     def __init__(self):
+        self.width = 600
+        self.height = 600
+        pygame.display.set_mode((self.width, self.height))
         self.arcade_font = pygame.font.Font('data/fonts/arcade-n.ttf', 20)
         self.init_screen_manager = pygame_gui.UIManager((600, 600),
                                                         'data/theme.json')
@@ -672,7 +810,7 @@ class InitScreen:
                         player_name = self.text_input.get_text().lower()
                         player_info = DatabaseQuery().call(
                             f"SELECT * FROM Scoring WHERE PLAYER_NAME"
-                            f" ='{player_name}'")[0]
+                            f" ='{player_name}'")
 
                         if not player_info:
                             DatabaseQuery().call(
@@ -705,8 +843,11 @@ class InitScreen:
 
 class StartScreen:
     def __init__(self):
-        self.start_screen_manager = pygame_gui.UIManager((600, 600),
-                                                         'data/theme.json')
+        self.width = 600
+        self.height = 600
+        pygame.display.set_mode((self.width, self.height))
+        self.start_screen_manager = pygame_gui.UIManager(
+            (self.width, self.height), 'data/theme.json')
         self.start_button = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect((175, 120), (232, 76)),
             text='',
@@ -752,6 +893,6 @@ class StartScreen:
 
 
 if __name__ == '__main__':
-    G = [(14, 6), (15, 6), (13, 6), (16, 6)]
+    G = [(12, 15), (13, 15), (14, 15), (15, 15)]
     Lvl1 = Level(G, (1, 1), 'data/maps/map0.txt')
     StartScreen().run()
