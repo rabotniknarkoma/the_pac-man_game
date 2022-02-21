@@ -1,100 +1,191 @@
 {
-     "button":
-     {
-         "misc":
-         {
-             "border_width": "0",
-             "shadow_width": "0"
-         }
+    "@start_screen": {
     },
-    "@start_screen":
-     {
-    },
-    "#start_button":
-     {
-         "colours":
-         {
-             "normal_bg":"#00000000",
-             "hovered_bg":"#00000000"
-
-         },
-         "images":
-         {
-              "normal_image":
-              {
-                 "path": "data/GUI/start_button.png"
-              },
-             "hovered_image":
-             {
-                 "path": "data/GUI/start_button.png"
-             }
+    "#start_button": {
+        "misc": {
+            "border_width": "0",
+            "shadow_width": "0"
+        },
+        "colours": {
+            "normal_bg": "#00000000",
+            "hovered_bg": "#00000000"
+        },
+        "images": {
+            "normal_image": {
+                "path": "data/GUI/start_button.png"
+            },
+            "hovered_image": {
+                "path": "data/GUI/start_button.png"
+            }
         }
-     },
-     "#records_button":
-     {
-         "colours":
-         {
-             "normal_bg":"#00000000",
-             "hovered_bg":"#00000000"
-
-         },
-         "images":
-         {
-              "normal_image":
-              {
-                 "path": "data/GUI/records_button.png"
-              },
-             "hovered_image":
-             {
-                 "path": "data/GUI/records_button.png"
-             }
-        }
-     },
-     "@records_screen":
-     {
     },
-    "#exit_button":
-     {
-         "colours":
-         {
-             "normal_bg":"#00000000",
-             "hovered_bg":"#00000000"
-
-         },
-         "images":
-         {
-              "normal_image":
-              {
-                 "path": "data/GUI/exit_button.png"
-              },
-             "hovered_image":
-             {
-                 "path": "data/GUI/exit_button.png"
-             }
+    "#records_button": {
+        "misc": {
+            "border_width": "0",
+            "shadow_width": "0"
+        },
+        "colours": {
+            "normal_bg": "#00000000",
+            "hovered_bg": "#00000000"
+        },
+        "images": {
+            "normal_image": {
+                "path": "data/GUI/records_button.png"
+            },
+            "hovered_image": {
+                "path": "data/GUI/records_button.png"
+            }
         }
-     },
-     "@init_screen":
-     {
     },
-    "#text_box":
-     {
-         "colours":
-         {
-             "dark_bg": "#00000000",
-             "selected_bg": "#00000000",
-             "normal_text": "#FFFF00",
-             "selected_text": "#00000000",
-             "normal_border": "#00000000"
-
-         },
-         "font":
-         {
-             "name": "montserrat",
-             "size": "50",
-             "regular_resource": {
-                  "package": "data.fonts",
-                  "resource": "arcade_font.ttf"
-             }
-         }
-     }
+    "@records_screen": {
+    },
+    "#exit_button": {
+        "misc": {
+            "border_width": "0",
+            "shadow_width": "0"
+        },
+        "colours": {
+            "normal_bg": "#00000000",
+            "hovered_bg": "#00000000"
+        },
+        "images": {
+            "normal_image": {
+                "path": "data/GUI/exit_button.png"
+            },
+            "hovered_image": {
+                "path": "data/GUI/exit_button.png"
+            }
+        }
+    },
+    "@init_screen": {
+    },
+    "#text_box": {
+        "colours": {
+            "dark_bg": "#00000000",
+            "selected_bg": "#00000000",
+            "normal_text": "#FFFF00",
+            "selected_text": "#00000000",
+            "normal_border": "#00000000"
+        },
+        "font": {
+            "name": "montserrat",
+            "size": "50",
+            "regular_resource": {
+                "package": "data.fonts",
+                "resource": "arcade_font.ttf"
+            }
+        }
+    },
+    "@map_creator_screen": {
+    },
+    "#create_button": {
+        "colours": {
+            "normal_bg": "#87CEFA",
+            "hovered_bg": "#00000000",
+            "normal_text": "#000000"
+        }
+    },
+    "#red_ghost_button": {
+        "colours": {
+            "normal_bg": "#87CEFA",
+            "hovered_bg": "#00000000"
+        },
+        "images": {
+            "normal_image": {
+                "path": "data/red.png"
+            },
+            "hovered_image": {
+                "path": "data/red.png"
+            }
+        }
+    },
+    "#green_ghost_button": {
+        "colours": {
+            "normal_bg": "#87CEFA",
+            "hovered_bg": "#00000000"
+        },
+        "images": {
+            "normal_image": {
+                "path": "data/green.png"
+            },
+            "hovered_image": {
+                "path": "data/green.png"
+            }
+        }
+    },
+    "#blue_ghost_button": {
+        "colours": {
+            "normal_bg": "#87CEFA",
+            "hovered_bg": "#00000000"
+        },
+        "images": {
+            "normal_image": {
+                "path": "data/blue.png"
+            },
+            "hovered_image": {
+                "path": "data/blue.png"
+            }
+        }
+    },
+    "#yellow_ghost_button": {
+        "colours": {
+            "normal_bg": "#87CEFA",
+            "hovered_bg": "#00000000"
+        },
+        "images": {
+            "normal_image": {
+                "path": "data/yellow.png"
+            },
+            "hovered_image": {
+                "path": "data/yellow.png"
+            }
+        }
+    },
+    "#player_button": {
+        "colours": {
+            "normal_bg": "#87CEFA",
+            "hovered_bg": "#00000000"
+        },
+        "images": {
+            "normal_image": {
+                "path": "data/pacman.png"
+            },
+            "hovered_image": {
+                "path": "data/pacman.png"
+            }
+        }
+    },
+    "#tile_button": {
+        "colours": {
+            "normal_bg": "#87CEFA",
+            "hovered_bg": "#00000000",
+            "normal_border": "#AAAAAA",
+            "disabled_border": "#808080"
+        },
+        "images": {
+            "normal_image": {
+                "path": "data/square.png"
+            },
+            "hovered_image": {
+                "path": "data/square.png"
+            }
+        }
+    },
+    "#map_name_text_box": {
+        "colours": {
+            "dark_bg": "#00000000",
+            "selected_bg": "#00000000",
+            "normal_text": "#FFFF00",
+            "selected_text": "#00000000",
+            "normal_border": "#00000000"
+        },
+        "font": {
+            "name": "montserrat",
+            "size": "15",
+            "regular_resource": {
+                "package": "data.fonts",
+                "resource": "arcade_font.ttf"
+            }
+        }
+    }
 }
