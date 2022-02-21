@@ -7,7 +7,7 @@ import sqlite3
 from pygame_gui.core import ObjectID
 
 pygame.init()
-SIZE = WIDTH, HEIGHT = 580, 600
+SIZE = WIDTH, HEIGHT = 600, 600
 screen = pygame.display.set_mode(SIZE)
 FPS = 60
 clock = pygame.time.Clock()
@@ -41,17 +41,25 @@ IMAGES = {'PACMAN': LoadImage()('pacman.png'),
           'SIMPLE_BACKGROUND': LoadImage()("GUI/simple_background.jpg"),
           'TILE': LoadImage()("square.png"),
           'DOT': LoadImage()("dot.png"),
-          'HEART': LoadImage()('heart.png')}
+          'HEART': LoadImage()('heart.png'),
+          'CLEAR': LoadImage()('clear.png')}
 
 
 class Map:
     def __init__(self, filename, level):
-        self.constants = {'TILE_SIZE': 24,
-                          'INDENT': 10}
+        self.TILE_SIZE = 24
+        self.INDENT = 10
+        self.POINTS_FOR_DOTS = 20
+        self.POINTS_FOR_GHOSTS = 200
+        self.EDIBLE_TIME = 400
         self.map_mask = []
         with open(filename) as file:
             for line in file:
-                self.map_mask.append(list(map(int, list(line.rstrip('\n')))))
+                if line == '\n':
+                    break
+                else:
+                    self.map_mask.append(
+                        list(map(int, list(line.rstrip('\n')))))
         self.level = level
         self.barriers = pygame.sprite.Group()
         self.ghosts = pygame.sprite.Group()
@@ -81,31 +89,34 @@ class Map:
             Dot(i[1], i[0], self)
 
     def render(self):
-        TILE_SIZE = self.constants['TILE_SIZE']
-        INDENT = self.constants['INDENT']
-        screen = pygame.display.set_mode((self.width * TILE_SIZE + 2 * INDENT,
-                                          self.height * TILE_SIZE + 2 * INDENT))
-        b1 = Border(INDENT - 1, INDENT - 1,
-                    INDENT + self.width * TILE_SIZE + 1, INDENT - 1, self)
+        screen = pygame.display.set_mode((
+            self.width * self.TILE_SIZE + 2 * self.INDENT,
+            self.height * self.TILE_SIZE + 4 * self.INDENT))
 
-        b2 = Border(INDENT - 1, INDENT - 1, INDENT - 1,
-                    INDENT + self.height * TILE_SIZE + 1, self)
+        border1 = Border(self.INDENT - 1, self.INDENT - 1,
+                         self.INDENT + self.width * self.TILE_SIZE + 1,
+                         self.INDENT -
+                         1, self)
 
-        b3 = Border(INDENT - 1,
-                    INDENT + self.height * TILE_SIZE + 1,
-                    INDENT + self.width * TILE_SIZE + 1,
-                    INDENT + self.height * TILE_SIZE + 1, self)
+        border2 = Border(self.INDENT - 1, self.INDENT - 1, self.INDENT - 1,
+                         self.INDENT + self.height * self.TILE_SIZE + 1, self)
 
-        b4 = Border(INDENT + self.width * TILE_SIZE + 1,
-                    INDENT - 1, INDENT + self.width * TILE_SIZE + 1,
-                    INDENT + self.height * TILE_SIZE + 1, self)
+        border3 = Border(self.INDENT - 1,
+                         self.INDENT + self.height * self.TILE_SIZE + 1,
+                         self.INDENT + self.width * self.TILE_SIZE + 1,
+                         self.INDENT + self.height * self.TILE_SIZE + 1, self)
+
+        border4 = Border(self.INDENT + self.width * self.TILE_SIZE + 1,
+                         self.INDENT - 1,
+                         self.INDENT + self.width * self.TILE_SIZE + 1,
+                         self.INDENT + self.height * self.TILE_SIZE + 1, self)
 
         for i in range(self.height):
             for j in range(self.height):
                 if self.map_mask[j][i] == 1:
-                    rect = pygame.Rect(INDENT + i * TILE_SIZE,
-                                       INDENT + j * TILE_SIZE,
-                                       TILE_SIZE, TILE_SIZE)
+                    rect = pygame.Rect(self.INDENT + i * self.TILE_SIZE,
+                                       self.INDENT + j * self.TILE_SIZE,
+                                       self.TILE_SIZE, self.TILE_SIZE)
                     tile = Tile(rect, self)
 
 
@@ -115,18 +126,17 @@ class Player(pygame.sprite.Sprite):
     def __init__(self, *param):
         super().__init__(param[:-3])
         self.map = param[-1]
-        INDENT = self.map.constants['INDENT']
-        TILE_SIZE = self.map.constants['TILE_SIZE']
 
         self.image = pygame.transform.scale(Player.image,
-                                            (TILE_SIZE, TILE_SIZE))
+                                            (self.map.TILE_SIZE,
+                                             self.map.TILE_SIZE))
         Player.image = self.image
         self.image.set_colorkey(pygame.Color('white'))
         self.rect = self.image.get_rect()
         self.mask = pygame.mask.from_surface(self.image)
 
-        self.rect.x = INDENT + param[-3] * TILE_SIZE
-        self.rect.y = INDENT + param[-2] * TILE_SIZE
+        self.rect.x = self.map.INDENT + param[-3] * self.map.TILE_SIZE
+        self.rect.y = self.map.INDENT + param[-2] * self.map.TILE_SIZE
         self.speed = 2
         self.direction = None
         self.command = None
@@ -134,28 +144,27 @@ class Player(pygame.sprite.Sprite):
         self.map.player_object = self
 
     def get_tile_location(self):
-        TILE_SIZE = self.map.constants['TILE_SIZE']
-        INDENT = self.map.constants['INDENT']
+        tile_x = (self.rect.x - self.map.INDENT) // self.map.TILE_SIZE
+        if self.map.TILE_SIZE - (
+                self.rect.x - self.map.INDENT) % self.map.TILE_SIZE < (
+                self.rect.x - self.map.INDENT) % self.map.TILE_SIZE:
+            tile_x = ((self.rect.x - self.map.INDENT) + self.map.TILE_SIZE - (
+                    self.rect.x - self.map.INDENT) % self.map.TILE_SIZE
+                      ) // self.map.TILE_SIZE
 
-        tile_x = (self.rect.x - INDENT) // TILE_SIZE
-        if TILE_SIZE - (self.rect.x - INDENT) % TILE_SIZE < (
-                self.rect.x - INDENT) % TILE_SIZE:
-            tile_x = ((self.rect.x - INDENT) + TILE_SIZE
-                      - (self.rect.x - INDENT) % TILE_SIZE) // TILE_SIZE
-
-        tile_y = (self.rect.y - INDENT) // TILE_SIZE
-        if TILE_SIZE - (self.rect.y - INDENT) % TILE_SIZE < (
-                self.rect.y - INDENT) % TILE_SIZE:
-            tile_y = ((self.rect.y - INDENT) + TILE_SIZE
-                      - (self.rect.y - INDENT) % TILE_SIZE) // TILE_SIZE
+        tile_y = (self.rect.y - self.map.INDENT) // self.map.TILE_SIZE
+        if self.map.TILE_SIZE - (
+                self.rect.y - self.map.INDENT) % self.map.TILE_SIZE < (
+                self.rect.y - self.map.INDENT) % self.map.TILE_SIZE:
+            tile_y = ((self.rect.y - self.map.INDENT) + self.map.TILE_SIZE - (
+                    self.rect.y - self.map.INDENT) % self.map.TILE_SIZE
+                      ) // self.map.TILE_SIZE
         return tile_x, tile_y
 
     def moving(self, args):
-        TILE_SIZE = self.map.constants['TILE_SIZE']
-        INDENT = self.map.constants['INDENT']
         tile_x, tile_y = self.get_tile_location()
         if self.command == 'LEFT_TURN':
-            if (self.rect.y - INDENT) % TILE_SIZE == 0 and \
+            if (self.rect.y - self.map.INDENT) % self.map.TILE_SIZE == 0 and \
                     self.map.map_mask[tile_y][tile_x - 1] == 0:
                 self.image = pygame.transform.flip(Player.image, True, False)
                 self.direction = 'LEFT'
@@ -163,7 +172,7 @@ class Player(pygame.sprite.Sprite):
 
 
         elif self.command == 'RIGHT_TURN':
-            if (self.rect.y - INDENT) % TILE_SIZE == 0 and \
+            if (self.rect.y - self.map.INDENT) % self.map.TILE_SIZE == 0 and \
                     self.map.map_mask[tile_y][tile_x + 1] == 0:
                 self.image = Player.image
                 self.direction = 'RIGHT'
@@ -171,7 +180,7 @@ class Player(pygame.sprite.Sprite):
 
 
         elif self.command == 'UP_TURN':
-            if (self.rect.x - INDENT) % TILE_SIZE == 0 and \
+            if (self.rect.x - self.map.INDENT) % self.map.TILE_SIZE == 0 and \
                     self.map.map_mask[tile_y - 1][tile_x] == 0:
                 self.image = pygame.transform.rotate(Player.image, 90)
                 self.direction = 'UP'
@@ -179,7 +188,7 @@ class Player(pygame.sprite.Sprite):
 
 
         elif self.command == 'DOWN_TURN':
-            if (self.rect.x - INDENT) % TILE_SIZE == 0 and \
+            if (self.rect.x - self.map.INDENT) % self.map.TILE_SIZE == 0 and \
                     self.map.map_mask[tile_y + 1][tile_x] == 0:
                 self.image = pygame.transform.rotate(Player.image, 270)
                 self.direction = 'DOWN'
@@ -187,7 +196,7 @@ class Player(pygame.sprite.Sprite):
 
 
         elif args and args[0].key == pygame.K_DOWN:
-            if (self.rect.x - INDENT) % TILE_SIZE == 0 and \
+            if (self.rect.x - self.map.INDENT) % self.map.TILE_SIZE == 0 and \
                     tile_y != self.map.width - 1 and \
                     self.map.map_mask[tile_y + 1][tile_x] == 0:
                 self.image = pygame.transform.rotate(Player.image, 270)
@@ -205,7 +214,8 @@ class Player(pygame.sprite.Sprite):
                     self.direction = 'DOWN'
 
         elif args and args[0].key == pygame.K_UP:
-            if (self.rect.x - INDENT) % TILE_SIZE == 0 and tile_y != 0 and \
+            if (self.rect.x - self.map.INDENT) % self.map.TILE_SIZE \
+                    == 0 and tile_y != 0 and \
                     self.map.map_mask[tile_y - 1][tile_x] == 0:
                 self.image = pygame.transform.rotate(Player.image, 90)
                 self.direction = 'UP'
@@ -222,7 +232,8 @@ class Player(pygame.sprite.Sprite):
                     self.direction = 'UP'
 
         elif args and args[0].key == pygame.K_LEFT:
-            if (self.rect.y - INDENT) % TILE_SIZE == 0 and tile_x != 0 and \
+            if (self.rect.y - self.map.INDENT) % self.map.TILE_SIZE \
+                    == 0 and tile_x != 0 and \
                     self.map.map_mask[tile_y][tile_x - 1] == 0:
                 self.image = pygame.transform.flip(Player.image, True, False)
                 self.direction = 'LEFT'
@@ -239,7 +250,7 @@ class Player(pygame.sprite.Sprite):
                     self.direction = 'LEFT'
 
         elif args and args[0].key == pygame.K_RIGHT:
-            if (self.rect.y - INDENT) % TILE_SIZE == 0 and \
+            if (self.rect.y - self.map.INDENT) % self.map.TILE_SIZE == 0 and \
                     tile_x != self.map.width - 1 and \
                     self.map.map_mask[tile_y][tile_x + 1] == 0:
                 self.image = Player.image
@@ -257,14 +268,11 @@ class Player(pygame.sprite.Sprite):
                     self.direction = 'RIGHT'
 
     def can_eat_ghosts(self):
-        if not self.map.ghosts_list[0].edible:
-            for ghost in self.map.ghosts_list:
+        for ghost in self.map.ghosts_list:
+            if not ghost.edible:
                 ghost.set_edible(True)
 
     def update(self, *args):
-        TILE_SIZE = self.map.constants['TILE_SIZE']
-        INDENT = self.map.constants['INDENT']
-
         self.moving(args)
 
         self.image.set_colorkey(pygame.Color('white'))
@@ -296,18 +304,21 @@ class Ghost(pygame.sprite.Sprite):
         self.color = param[-1]
 
         self.map = param[-2]
-        INDENT = self.map.constants['INDENT']
-        TILE_SIZE = self.map.constants['TILE_SIZE']
+
         self.image = pygame.transform.scale(IMAGES[self.color],
-                                            (TILE_SIZE, TILE_SIZE))
+                                            (self.map.TILE_SIZE,
+                                             self.map.TILE_SIZE))
         self.image.set_colorkey(pygame.Color('white'))
         self.rect = self.image.get_rect()
         self.mask = pygame.mask.from_surface(self.image)
 
-        self.rect.x = INDENT + param[-4] * TILE_SIZE
-        self.rect.y = INDENT + param[-3] * TILE_SIZE
+        self.rect.x = self.map.INDENT + param[-4] * self.map.TILE_SIZE
+        self.rect.y = self.map.INDENT + param[-3] * self.map.TILE_SIZE
+        self.spawn = (param[-4], param[-3])
         self.moving_loop_counter = 0
         self.edible = False
+        self.time_to_respawn = 0
+        self.respawning = False
         self.speed = 2
         self.next_location = None
         self.edible_counter = 0
@@ -316,21 +327,26 @@ class Ghost(pygame.sprite.Sprite):
         self.map.ghosts_list.append(self)
 
     def get_tile_location(self):
-        TILE_SIZE = self.map.constants['TILE_SIZE']
-        INDENT = self.map.constants['INDENT']
+        tile_x = (self.rect.x - self.map.INDENT) // self.map.TILE_SIZE
+        if self.map.TILE_SIZE - (
+                self.rect.x - self.map.INDENT) % self.map.TILE_SIZE < (
+                self.rect.x - self.map.INDENT) % self.map.TILE_SIZE:
+            tile_x = ((self.rect.x - self.map.INDENT) + self.map.TILE_SIZE - (
+                    self.rect.x - self.map.INDENT) % self.map.TILE_SIZE
+                      ) // self.map.TILE_SIZE
 
-        tile_x = (self.rect.x - INDENT) // TILE_SIZE
-        if TILE_SIZE - (self.rect.x - INDENT) % TILE_SIZE < (
-                self.rect.x - INDENT) % TILE_SIZE:
-            tile_x = ((self.rect.x - INDENT) + TILE_SIZE
-                      - (self.rect.x - INDENT) % TILE_SIZE) // TILE_SIZE
-
-        tile_y = (self.rect.y - INDENT) // TILE_SIZE
-        if TILE_SIZE - (self.rect.y - INDENT) % TILE_SIZE < (
-                self.rect.y - INDENT) % TILE_SIZE:
-            tile_y = ((self.rect.y - INDENT) + TILE_SIZE
-                      - (self.rect.y - INDENT) % TILE_SIZE) // TILE_SIZE
+        tile_y = (self.rect.y - self.map.INDENT) // self.map.TILE_SIZE
+        if self.map.TILE_SIZE - (
+                self.rect.y - self.map.INDENT) % self.map.TILE_SIZE < (
+                self.rect.y - self.map.INDENT) % self.map.TILE_SIZE:
+            tile_y = ((self.rect.y - self.map.INDENT) + self.map.TILE_SIZE - (
+                    self.rect.y - self.map.INDENT) % self.map.TILE_SIZE
+                      ) // self.map.TILE_SIZE
         return tile_x, tile_y
+
+    def set_position(self, x, y):
+        self.rect.x = x * self.map.TILE_SIZE + self.map.INDENT
+        self.rect.y = y * self.map.TILE_SIZE + self.map.INDENT
 
     def random_moving(self):
         if pygame.sprite.spritecollideany(self, self.map.barriers):
@@ -344,6 +360,8 @@ class Ghost(pygame.sprite.Sprite):
                 self.rect.x -= self.speed
             elif self.direction == 'LEFT':
                 self.rect.x += self.speed
+            else:
+                print(1)
 
             direction_choices = []
 
@@ -359,7 +377,10 @@ class Ghost(pygame.sprite.Sprite):
             if location[1] != self.map.height - 1:
                 if self.map.map_mask[location[1] + 1][location[0]] == 0:
                     direction_choices.append('DOWN')
-            self.direction = random.choice(direction_choices)
+            try:
+                self.direction = random.choice(direction_choices)
+            except Exception:
+                self.direction = 'UP'
 
         if self.direction == 'DOWN':
             self.rect.y += self.speed
@@ -398,44 +419,62 @@ class Ghost(pygame.sprite.Sprite):
         return x, y
 
     def persecution(self):
-        TILE_SIZE = self.map.constants['TILE_SIZE']
-        INDENT = self.map.constants['INDENT']
-
         self_location = self.get_tile_location()
         player_location = self.map.player_object.get_tile_location()
 
         if self.next_location is None:
             self.next_location = self.find_path_step(self_location,
                                                      player_location)
-        if self.next_location[1] * TILE_SIZE - self.rect.y + INDENT > 0:
+        if self.next_location[
+            1] * self.map.TILE_SIZE - self.rect.y + self.map.INDENT > 0:
             self.rect.y += self.speed
-        elif self.next_location[1] * TILE_SIZE - self.rect.y + INDENT < 0:
+
+        elif self.next_location[
+            1] * self.map.TILE_SIZE - self.rect.y + self.map.INDENT < 0:
             self.rect.y -= self.speed
-        elif self.next_location[0] * TILE_SIZE - self.rect.x + INDENT > 0:
+
+        elif self.next_location[
+            0] * self.map.TILE_SIZE - self.rect.x + self.map.INDENT > 0:
             self.rect.x += self.speed
-        elif self.next_location[0] * TILE_SIZE - self.rect.x + INDENT < 0:
+
+        elif self.next_location[
+            0] * self.map.TILE_SIZE - self.rect.x + self.map.INDENT < 0:
             self.rect.x -= self.speed
+
         else:
             self.next_location = self.find_path_step(self_location,
                                                      player_location)
 
     def set_edible(self, var):
-        TILE_SIZE = self.map.constants['TILE_SIZE']
         if not var:
             self.edible = False
             self.image = pygame.transform.scale(IMAGES[self.color],
-                                                (TILE_SIZE, TILE_SIZE))
+                                                (self.map.TILE_SIZE,
+                                                 self.map.TILE_SIZE))
         else:
             self.edible = True
             self.image = pygame.transform.scale(IMAGES['EDIBLE'],
-                                                (TILE_SIZE, TILE_SIZE))
-            self.edible_counter = self.map.level.constants['EDIBLE_TIME']
+                                                (self.map.TILE_SIZE,
+                                                 self.map.TILE_SIZE))
+            self.edible_counter = self.map.EDIBLE_TIME
         self.image.set_colorkey(pygame.Color('white'))
 
-    def update(self, *args):
-        TILE_SIZE = self.map.constants['TILE_SIZE']
-        INDENT = self.map.constants['INDENT']
+    def wait(self, time=0):
+        if self.time_to_respawn != 0:
+            self.time_to_respawn -= 1
+        else:
+            x, y = self.rect.x, self.rect.y
+            self.image = pygame.transform.scale(IMAGES[self.color],
+                                                (self.map.TILE_SIZE,
+                                                 self.map.TILE_SIZE))
+            self.image.set_colorkey(pygame.Color('white'))
+            self.rect = self.image.get_rect()
+            self.mask = pygame.mask.from_surface(self.image)
+            self.rect.x = x
+            self.rect.y = y
+            self.respawning = False
 
+    def update(self, *args):
         if self.edible_counter > 1:
             self.edible_counter -= 1
         elif self.edible_counter == 1:
@@ -445,22 +484,28 @@ class Ghost(pygame.sprite.Sprite):
         if pygame.sprite.spritecollideany(self, self.map.player):
             if self.edible:
                 self.mask.clear()
-                self.kill()
-                self.map.level.score += self.map.level.constants[
-                    'POINTS_FOR_GHOSTS']
+                self.image = pygame.transform.scale(IMAGES['CLEAR'],
+                                                    (self.map.TILE_SIZE,
+                                                     self.map.TILE_SIZE))
+                self.set_position(self.spawn[0], self.spawn[1])
+                self.respawning = True
+                self.time_to_respawn = 200
+                self.map.level.score += self.map.POINTS_FOR_GHOSTS
             else:
                 self.map.player_object.mask.clear()
                 self.map.player_object.kill()
                 self.map.level.losing()
 
-        if not self.edible:
+        if self.respawning:
+            self.wait()
+        elif not self.edible:
             if self.moving_loop_counter < 500:  # сделать константой уровня
                 self.random_moving()
                 self.moving_loop_counter += 1
             elif self.moving_loop_counter == 500:
-                if (self.rect.x - INDENT) % TILE_SIZE != 0:
+                if (self.rect.x - self.map.INDENT) % self.map.TILE_SIZE != 0:
                     self.rect.x += self.speed
-                elif (self.rect.y - INDENT) % TILE_SIZE != 0:
+                elif (self.rect.y - self.map.INDENT) % self.map.TILE_SIZE != 0:
                     self.rect.y += self.speed
                 else:
                     self.moving_loop_counter += 1
@@ -491,9 +536,9 @@ class Tile(pygame.sprite.Sprite):
     def __init__(self, rect, parent_map):
         super().__init__(parent_map.barriers)
         self.map = parent_map
-        TILE_SIZE = self.map.constants['TILE_SIZE']
         self.image = pygame.transform.scale(IMAGES['TILE'],
-                                            (TILE_SIZE, TILE_SIZE))
+                                            (self.map.TILE_SIZE,
+                                             self.map.TILE_SIZE))
         self.rect = rect
 
 
@@ -502,19 +547,19 @@ class Dot(pygame.sprite.Sprite):
         super().__init__(param[:-3])
         self.map = param[-1]
 
-        INDENT = self.map.constants['INDENT']
-        TILE_SIZE = self.map.constants['TILE_SIZE']
-
-        self.image = pygame.transform.scale(IMAGES['DOT'], (TILE_SIZE // 2,
-                                                            TILE_SIZE // 2))
+        self.image = pygame.transform.scale(IMAGES['DOT'],
+                                            (self.map.TILE_SIZE // 2,
+                                             self.map.TILE_SIZE // 2))
         self.image.set_colorkey(pygame.Color('white'))
         self.rect = self.image.get_rect()
         self.mask = pygame.mask.from_surface(self.image)
 
-        self.rect.x = (TILE_SIZE - TILE_SIZE // 2) // 2 + INDENT + param[
-            -3] * TILE_SIZE
-        self.rect.y = (TILE_SIZE - TILE_SIZE // 2) // 2 + INDENT + param[
-            -2] * TILE_SIZE
+        self.rect.x = (self.map.TILE_SIZE - self.map.TILE_SIZE // 2
+                       ) // 2 + self.map.INDENT + param[
+                          -3] * self.map.TILE_SIZE
+        self.rect.y = (self.map.TILE_SIZE - self.map.TILE_SIZE // 2
+                       ) // 2 + self.map.INDENT + param[
+                          -2] * self.map.TILE_SIZE
 
         self.add(self.map.dots)
 
@@ -523,7 +568,7 @@ class Dot(pygame.sprite.Sprite):
             self.map.player_object.can_eat_ghosts()
             self.mask.clear()
             self.kill()
-            self.map.level.score += self.map.level.constants['POINTS_FOR_DOTS']
+            self.map.level.score += self.map.POINTS_FOR_DOTS
 
 
 class SmallDot(pygame.sprite.Sprite):
@@ -531,19 +576,20 @@ class SmallDot(pygame.sprite.Sprite):
         super().__init__(param[:-3])
         self.map = param[-1]
 
-        INDENT = self.map.constants['INDENT']
-        TILE_SIZE = self.map.constants['TILE_SIZE']
-
-        self.image = pygame.transform.scale(IMAGES['DOT'], (TILE_SIZE // 5,
-                                                            TILE_SIZE // 5))
+        self.image = pygame.transform.scale(IMAGES['DOT'],
+                                            (self.map.TILE_SIZE // 5,
+                                             self.map.TILE_SIZE // 5))
         self.image.set_colorkey(pygame.Color('white'))
         self.rect = self.image.get_rect()
         self.mask = pygame.mask.from_surface(self.image)
 
-        self.rect.x = (TILE_SIZE - TILE_SIZE // 5) // 2 + INDENT + param[
-            -3] * TILE_SIZE
-        self.rect.y = (TILE_SIZE - TILE_SIZE // 5) // 2 + INDENT + param[
-            -2] * TILE_SIZE
+        self.rect.x = (self.map.TILE_SIZE - self.map.TILE_SIZE // 5
+                       ) // 2 + self.map.INDENT + param[
+                          -3] * self.map.TILE_SIZE
+
+        self.rect.y = (self.map.TILE_SIZE - self.map.TILE_SIZE // 5
+                       ) // 2 + self.map.INDENT + param[
+                          -2] * self.map.TILE_SIZE
 
         self.add(self.map.dots)
 
@@ -551,65 +597,77 @@ class SmallDot(pygame.sprite.Sprite):
         if pygame.sprite.spritecollideany(self, self.map.player):
             self.mask.clear()
             self.kill()
-            self.map.level.score += self.map.level.constants['POINTS_FOR_DOTS']
-
-
-class Heart(pygame.sprite.Sprite):
-    def __init__(self, *param):
-        super().__init__(*param[:-2])
-        self.image = IMAGES['HEART']
-        self.image.set_colorkey(pygame.Color('white'))
-        self.rect = self.image.get_rect()
-        self.mask = pygame.mask.from_surface(self.image)
-        self.rect.x = param[-2]
-        self.rect.y = param[-1]
+            self.map.level.score += self.map.POINTS_FOR_DOTS
 
 
 class Level:
-    def __init__(self, ghsts, plyer, map_name):
-        self.ghosts_list = ghsts  # сменить названия
-        self.player_list = plyer  # сменить названия
+    def __init__(self, map_name):
         self.map_name = map_name
         self.running = True
         self.score = 0
-        self.lifes = 1
+        self.lifes = 3
         self.render()
-        self.constants = {'POINTS_FOR_DOTS': 20,
-                          'POINTS_FOR_GHOSTS': 200,
-                          'EDIBLE_TIME': 400}
 
     def render(self):
-        self.main_map = Map(self.map_name, self)
-        self.red = Ghost(self.ghosts_list[0][0], self.ghosts_list[0][1],
-                         self.main_map, 'RED')
-        self.yellow = Ghost(self.ghosts_list[1][0], self.ghosts_list[1][1],
-                            self.main_map, 'YELLOW')
-        self.blue = Ghost(self.ghosts_list[2][0], self.ghosts_list[2][1],
-                          self.main_map, 'BLUE')
-        self.green = Ghost(self.ghosts_list[3][0], self.ghosts_list[3][1],
-                           self.main_map, 'GREEN')
-        self.player = Player(self.player_list[0], self.player_list[1],
-                             self.main_map)
-        # heart1
-        # heart2
-        # heart3
+        data = list(
+            map(lambda x: x.split('-'), open(self.map_name).readlines()[
+                -1].strip().split(';')))
 
-    def change_constants(self, change_dict):
-        for key, val in change_dict:
-            if key in self.constants:
-                self.constants[key] = val
+        self.main_map = Map(self.map_name, self)
+        if len(data) >= 2:
+            self.gh1 = self.ghost = Ghost(int(data[0][1]), int(data[0][2]),
+                                          self.main_map, data[0][3])
+        if len(data) >= 3:
+            self.gh2 = self.ghost = Ghost(int(data[1][1]), int(data[1][2]),
+                                          self.main_map, data[1][3])
+        if len(data) >= 4:
+            self.gh3 = self.ghost = Ghost(int(data[2][1]), int(data[2][2]),
+                                          self.main_map, data[2][3])
+        if len(data) == 5:
+            self.gh4 = self.ghost = Ghost(int(data[3][1]), int(data[3][2]),
+                                          self.main_map, data[3][3])
+        self.player = Player(int(data[-1][1]), int(data[-1][2]),
+                             self.main_map)
 
     def draw_score(self):
         font = pygame.font.Font(None, 30)
-        INDENT = self.main_map.constants['INDENT']
-        TILE_SIZE = self.main_map.constants['TILE_SIZE']
 
         text = 'SCORE:' + str(self.score)
         string_rendered = font.render(text, True, pygame.Color('white'))
         score_rect = string_rendered.get_rect()
-        score_rect.x = INDENT
-        score_rect.y = INDENT + self.main_map.height * TILE_SIZE + 10
+        score_rect.x = self.main_map.INDENT
+        score_rect.y = self.main_map.INDENT + self.main_map.height \
+                       * self.main_map.TILE_SIZE + 10
         screen.blit(string_rendered, score_rect)
+
+    def draw_hearts(self):
+        if self.lifes == 3:
+            heart_surf = pygame.transform.scale(IMAGES['HEART'],
+                                                (2 * self.main_map.INDENT,
+                                                 2 * self.main_map.INDENT))
+            heart_rect = heart_surf.get_rect()
+            heart_rect.x = self.main_map.INDENT * 21
+            heart_rect.y = self.main_map.height * self.main_map.TILE_SIZE + \
+                           self.main_map.INDENT * 2
+            screen.blit(heart_surf, heart_rect)
+        if self.lifes >= 2:
+            heart_surf = pygame.transform.scale(IMAGES['HEART'],
+                                                (2 * self.main_map.INDENT,
+                                                 2 * self.main_map.INDENT))
+            heart_rect = heart_surf.get_rect()
+            heart_rect.x = self.main_map.INDENT * 18
+            heart_rect.y = self.main_map.height * self.main_map.TILE_SIZE + \
+                           self.main_map.INDENT * 2
+            screen.blit(heart_surf, heart_rect)
+        if self.lifes >= 1:
+            heart_surf = pygame.transform.scale(IMAGES['HEART'],
+                                                (2 * self.main_map.INDENT,
+                                                 2 * self.main_map.INDENT))
+            heart_rect = heart_surf.get_rect()
+            heart_rect.x = self.main_map.INDENT * 15
+            heart_rect.y = self.main_map.height * self.main_map.TILE_SIZE + \
+                           self.main_map.INDENT * 2
+            screen.blit(heart_surf, heart_rect)
 
     def losing(self):
         self.lifes -= 1
@@ -675,6 +733,7 @@ class Level:
                     self.main_map.player.update(event)
 
             self.draw_score()
+            self.draw_hearts()
             self.main_map.ghosts.update()
             self.main_map.player.update()
             self.main_map.dots.update()
@@ -893,6 +952,5 @@ class StartScreen:
 
 
 if __name__ == '__main__':
-    G = [(12, 15), (13, 15), (14, 15), (15, 15)]
-    Lvl1 = Level(G, (1, 1), 'data/maps/map0.txt')
+    Lvl1 = Level('data/maps/map0.txt')
     StartScreen().run()
