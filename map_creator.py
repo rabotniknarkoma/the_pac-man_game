@@ -12,22 +12,35 @@ clock = pygame.time.Clock()
 class MapCreator:
     def __init__(self):
         self.arcade_font = pygame.font.Font('data/fonts/arcade-n.ttf', 10)
+        self.arcade_font_small = pygame.font.Font('data/fonts/arcade-n.ttf',
+                                                  8)
         self.map_edit_manager = pygame_gui.UIManager((600, 600),
                                                      'data/theme.json')
 
         self.text = self.arcade_font.render('Here you can create your own '
                                             'map', 1,
                                             (0, 0, 0))
+        self.small_text = self.arcade_font_small.render('map name', 1,
+                                                        (60, 60, 60))
+
+        self.action = 'SET_CLEAR'
 
         self.create_button = pygame_gui.elements.UIButton(
-            relative_rect=pygame.Rect((450, 55), (120, 25)),
+            relative_rect=pygame.Rect((460, 55), (120, 25)),
             text='Create map',
             manager=self.map_edit_manager,
             object_id=ObjectID(class_id='@map_creator_screen',
                                object_id='#create_button'))
 
+        self.eraser_button = pygame_gui.elements.UIButton(
+            relative_rect=pygame.Rect((320, 50), (35, 35)),
+            text='',
+            manager=self.map_edit_manager,
+            object_id=ObjectID(class_id='@map_creator_screen',
+                               object_id='#eraser_button'))
+
         self.text_input = pygame_gui.elements.UITextEntryLine(
-            relative_rect=pygame.Rect((320, 55), (100, 30)),
+            relative_rect=pygame.Rect((360, 55), (90, 30)),
             manager=self.map_edit_manager,
             object_id=ObjectID(class_id='@map_creator_screen',
                                object_id='#map_name_text_box'))
@@ -82,16 +95,48 @@ class MapCreator:
         while running:
             screen.fill(pygame.Color(175, 238, 238))
             screen.blit(self.text, (145, 10))
+            screen.blit(self.small_text, (370, 46))
 
             events = pygame.event.get()
             for event in events:
 
                 if event.type == pygame.QUIT:
                     running = False
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    board.get_click(event.pos)
+                if pygame.mouse.get_pressed()[0] and board.pos_on_board(
+                        pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1]):
+                    board.on_click(board.get_cell(event.pos), self.action)
                     board.render(screen)
                     pygame.display.flip()
+                elif event.type == pygame_gui.UI_BUTTON_PRESSED:
+
+                    if event.ui_element == self.tile_button:
+                        self.action = 'SET_TILE'
+                    elif event.ui_element == self.eraser_button:
+                        self.action = 'SET_CLEAR'
+                    elif event.ui_element == self.player_button:
+                        self.action = 'SET_PLAYER'
+                    elif event.ui_element == self.red_ghost_button:
+                        self.action = 'SET_RED'
+                    elif event.ui_element == self.green_ghost_button:
+                        self.action = 'SET_GREEN'
+                    elif event.ui_element == self.blue_ghost_button:
+                        self.action = 'SET_BLUE'
+                    elif event.ui_element == self.yellow_ghost_button:
+                        self.action = 'SET_YELLOW'
+                    elif event.ui_element == self.create_button:
+                        if self.text_input.get_text() != '' \
+                                and board.enemy_list != []:
+                            file_map = open(
+                                'data/maps/' + self.text_input.get_text() +
+                                '.txt', 'w+')
+                            for line in board.board:
+                                file_map.write(''.join(list(map(
+                                    str, line))) + '\n')
+                            file_map.write('\n')
+                            file_map.write(';'.join(list(
+                                map(lambda x: '-'.join(list(map(str, x))),
+                                    board.enemy_list))))
+                            file_map.close()
 
                 self.map_edit_manager.process_events(event)
 
@@ -106,6 +151,7 @@ class Board:
         self.width = width
         self.height = height
         self.board = [[0] * width for _ in range(height)]
+        self.enemy_list = []
         self.left = left
         self.top = top
         self.cell_size = 16
@@ -123,11 +169,56 @@ class Board:
                         x * self.cell_size + self.left,
                         y * self.cell_size + self.top,
                         self.cell_size, self.cell_size), 1)
-                else:
-                    pygame.draw.rect(screen, pygame.Color(255, 255, 255), (
+                elif self.board[y][x] == 1:
+                    pygame.draw.rect(screen, pygame.Color(106, 13, 173), (
                         x * self.cell_size + self.left,
                         y * self.cell_size + self.top,
                         self.cell_size, self.cell_size))
+        for i in self.enemy_list:
+            if i[0] == 'G' and i[-1] == 'RED':
+                IMAGE = pygame.transform.scale(
+                    pygame.image.load('data/red.png').convert(),
+                    (self.cell_size, self.cell_size))
+                rect = IMAGE.get_rect()
+                rect.x, rect.y = i[1] * self.cell_size + self.left, i[
+                    2] * self.cell_size + self.top
+                screen.blit(IMAGE, rect)
+
+            elif i[0] == 'G' and i[-1] == 'GREEN':
+                IMAGE = pygame.transform.scale(
+                    pygame.image.load('data/green.png').convert(),
+                    (self.cell_size, self.cell_size))
+                rect = IMAGE.get_rect()
+                rect.x, rect.y = i[1] * self.cell_size + self.left, i[
+                    2] * self.cell_size + self.top
+                screen.blit(IMAGE, rect)
+
+            elif i[0] == 'G' and i[-1] == 'BLUE':
+                IMAGE = pygame.transform.scale(
+                    pygame.image.load('data/blue.png').convert(),
+                    (self.cell_size, self.cell_size))
+                rect = IMAGE.get_rect()
+                rect.x, rect.y = i[1] * self.cell_size + self.left, i[
+                    2] * self.cell_size + self.top
+                screen.blit(IMAGE, rect)
+
+            elif i[0] == 'G' and i[-1] == 'YELLOW':
+                IMAGE = pygame.transform.scale(
+                    pygame.image.load('data/yellow.png').convert(),
+                    (self.cell_size, self.cell_size))
+                rect = IMAGE.get_rect()
+                rect.x, rect.y = i[1] * self.cell_size + self.left, i[
+                    2] * self.cell_size + self.top
+                screen.blit(IMAGE, rect)
+
+            elif i[0] == 'P':
+                IMAGE = pygame.transform.scale(
+                    pygame.image.load('data/pacman.png').convert(),
+                    (self.cell_size, self.cell_size))
+                rect = IMAGE.get_rect()
+                rect.x, rect.y = i[1] * self.cell_size + self.left, i[
+                    2] * self.cell_size + self.top
+                screen.blit(IMAGE, rect)
 
     def get_cell(self, mouse_pos):
         x = 0
@@ -140,17 +231,41 @@ class Board:
             y += 1
         return x, y
 
-    def on_click(self, cell_coords):
-        if self.board[cell_coords[1]][cell_coords[0]] == 0:
+    def on_click(self, cell_coords, action):
+        for i in range(len(self.enemy_list) - 1):
+            if self.enemy_list[i][1] == cell_coords[0] and self.enemy_list[i][
+                2] == cell_coords[1]:
+                del self.enemy_list[i]
+        if action == 'SET_TILE':
             self.board[cell_coords[1]][cell_coords[0]] = 1
-        else:
+        elif action == 'SET_CLEAR':
             self.board[cell_coords[1]][cell_coords[0]] = 0
+        elif action == 'SET_RED':
+            self.enemy_list.append(
+                ['G', cell_coords[0], cell_coords[1], 'RED'])
+        elif action == 'SET_GREEN':
+            self.enemy_list.append(
+                ['G', cell_coords[0], cell_coords[1], 'GREEN'])
+        elif action == 'SET_BLUE':
+            self.enemy_list.append(
+                ['G', cell_coords[0], cell_coords[1], 'BLUE'])
+        elif action == 'SET_YELLOW':
+            self.enemy_list.append(
+                ['G', cell_coords[0], cell_coords[1], 'YELLOW'])
+        elif action == 'SET_PLAYER':
+            flag = False
+            for i in self.enemy_list:
+                if i[0] == 'P':
+                    flag = True
+            if not flag:
+                self.enemy_list.append(
+                    ['P', cell_coords[0], cell_coords[1]])
 
-    def get_click(self, mouse_pos):
-        if self.left < mouse_pos[
-            0] < self.left + self.width * self.cell_size and self.top < \
-                mouse_pos[1] < self.top + self.height * self.cell_size:
-            self.on_click(self.get_cell(mouse_pos))
+    def pos_on_board(self, x, y):
+        if self.left <= x <= self.width * self.cell_size + self.left and \
+                self.top <= y <= self.height * self.cell_size + self.top:
+            return True
+        return False
 
 
 MapCreator().run()

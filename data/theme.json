@@ -187,5 +187,21 @@
                 "resource": "arcade_font.ttf"
             }
         }
+    },
+    "#eraser_button": {
+        "colours": {
+            "normal_bg": "#87CEFA",
+            "hovered_bg": "#00000000",
+            "normal_border": "#AAAAAA",
+            "disabled_border": "#808080"
+        },
+        "images": {
+            "normal_image": {
+                "path": "data/eraser.png"
+            },
+            "hovered_image": {
+                "path": "data/eraser.png"
+            }
+        }
     }
 }
