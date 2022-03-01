@@ -17,18 +17,11 @@ clock = pygame.time.Clock()
 # класс для загрузки изображения
 class LoadImage:
     def __call__(self, name):
-        color_key = None
         fullname = os.path.join('data', name)
         if not os.path.isfile(fullname):
             print(f"Файл с изображением '{fullname}' не найден")
             sys.exit()
-        found_image = pygame.image.load(fullname)
-        if color_key is not None:
-            found_image = found_image.convert()
-            if color_key == -1:
-                color_key = found_image.get_at((0, 0))
-        else:
-            found_image = found_image.convert_alpha()
+        found_image = pygame.image.load(fullname).convert_alpha()
         return found_image
 
 
@@ -334,9 +327,11 @@ class Ghost(pygame.sprite.Sprite):
             for dx, dy in (1, 0), (0, 1), (-1, 0), (0, -1):
                 next_x, next_y = x + dx, y + dy
                 if self.map.width > next_x >= 0 == self.map.map_mask[next_y][
-                    next_x] \
-                        and 0 <= next_y < self.map.height \
+                    next_x] and 0 < next_y < self.map.height \
                         and distance[next_y][next_x] == INF:
+                    distance[next_y][next_x] = distance[y][x] + 1
+                    prev[next_y][next_x] = (x, y)
+                    queue.append((next_x, next_y))
                     distance[next_y][next_x] = distance[y][x] + 1
                     prev[next_y][next_x] = (x, y)
                     queue.append((next_x, next_y))
@@ -440,6 +435,7 @@ class Ghost(pygame.sprite.Sprite):
                 self.persecution()
                 self.moving_loop_counter += 1
             else:
+                self.next_location = None
                 self.moving_loop_counter = 0
                 self.random_moving()
 
@@ -450,8 +446,8 @@ class Ghost(pygame.sprite.Sprite):
 
 # класс ограничивающий игровое поле
 class Border(pygame.sprite.Sprite):
-    def __init__(self, x1, y1, x2, y2, map):
-        super().__init__(map.barriers)
+    def __init__(self, x1, y1, x2, y2, my_map):
+        super().__init__(my_map.barriers)
         if x1 == x2:
             self.image = pygame.Surface([1, abs(y2 - y1)])
             self.rect = pygame.Rect(x1, y1, 1, abs(y2 - y1))
@@ -754,23 +750,23 @@ class Level:
                 -1].strip().split(';')))
 
         if len(data) >= 2:
-            self.gh1 = Ghost(int(data[0][1]), int(data[0][2]),
-                             self.main_map, data[0][3])
+            Ghost(int(data[0][1]), int(data[0][2]),
+                  self.main_map, data[0][3])
 
         if len(data) >= 3:
-            self.gh2 = Ghost(int(data[1][1]), int(data[1][2]),
-                             self.main_map, data[1][3])
+            Ghost(int(data[1][1]), int(data[1][2]),
+                  self.main_map, data[1][3])
 
         if len(data) >= 4:
-            self.gh3 = Ghost(int(data[2][1]), int(data[2][2]),
-                             self.main_map, data[2][3])
+            Ghost(int(data[2][1]), int(data[2][2]),
+                  self.main_map, data[2][3])
 
         if len(data) == 5:
-            self.gh4 = Ghost(int(data[3][1]), int(data[3][2]),
-                             self.main_map, data[3][3])
+            Ghost(int(data[3][1]), int(data[3][2]),
+                  self.main_map, data[3][3])
 
-        self.player = Player(int(data[-1][1]), int(data[-1][2]),
-                             self.main_map)
+        Player(int(data[-1][1]), int(data[-1][2]),
+               self.main_map)
 
     def draw_score(self):
         font = pygame.font.Font(None, 30)
@@ -1231,4 +1227,4 @@ class FinalScreen:
 
 
 if __name__ == '__main__':
-    StartScreen().run()
+    Level(1, 'data/maps/map1.txt').run(1)
