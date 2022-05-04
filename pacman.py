@@ -25,8 +25,6 @@ class LoadImage:
         found_image = pygame.image.load(fullname)
         if color_key is not None:
             found_image = found_image.convert()
-            if color_key == -1:
-                color_key = found_image.get_at((0, 0))
         else:
             found_image = found_image.convert_alpha()
         return found_image
@@ -59,7 +57,7 @@ class Player(pygame.sprite.Sprite):
         super().__init__(param[:-3])
         self.map = param[-1]
 
-        # здесь и в других классах большинство изображений масштабируются в
+        # здесь и в других классах большинство изображений масштабируется в
         # соответствии с размерами окнаЮ размеров тайлов и отступов
         self.image = pygame.transform.scale(Player.image,
                                             (self.map.TILE_SIZE,
@@ -204,13 +202,13 @@ class Player(pygame.sprite.Sprite):
                 elif self.direction == 'LEFT':
                     self.direction = 'RIGHT'
 
-    def can_eat_ghosts(self):  # ф-ия делает всех не возраждающихся врагов
-        # уязвивыми
+    def can_eat_ghosts(self):  # ф-ия делает всех не возрождающихся врагов
+        # уязвимыми
         for ghost in self.map.ghosts_list:
             if not ghost.edible:
                 ghost.set_edible(True)
 
-    def update(self, *args):  # ф-ия корректировки положения  и
+    def update(self, *args):  # ф-ия корректировки положения и
         # столкновения игрока
         self.moving(args)
 
@@ -255,7 +253,7 @@ class Ghost(pygame.sprite.Sprite):
 
         self.rect.x = self.map.INDENT + param[-4] * self.map.TILE_SIZE
         self.rect.y = self.map.INDENT + param[-3] * self.map.TILE_SIZE
-        self.spawn = (param[-4], param[-3])  # запоминает спавн для вохрождения
+        self.spawn = (param[-4], param[-3])  # запоминает спавн для возрождения
         self.moving_loop_counter = 0
         self.edible = False  # уязвимость перед игроком
         self.time_to_respawn = 0
@@ -388,7 +386,7 @@ class Ghost(pygame.sprite.Sprite):
                                                  self.map.TILE_SIZE))
             self.edible_counter = self.map.EDIBLE_TIME
 
-    def respawn(self):  # ожидание во время возраждения
+    def respawn(self):  # ожидание во время возрождения
         if self.time_to_respawn >= 0:
             self.time_to_respawn -= 1
         else:
@@ -450,8 +448,8 @@ class Ghost(pygame.sprite.Sprite):
 
 # класс ограничивающий игровое поле
 class Border(pygame.sprite.Sprite):
-    def __init__(self, x1, y1, x2, y2, map):
-        super().__init__(map.barriers)
+    def __init__(self, x1, y1, x2, y2, parent_map):
+        super().__init__(parent_map.barriers)
         if x1 == x2:
             self.image = pygame.Surface([1, abs(y2 - y1)])
             self.rect = pygame.Rect(x1, y1, 1, abs(y2 - y1))
@@ -501,7 +499,7 @@ class Dot(pygame.sprite.Sprite):
             self.map.level.score += self.map.POINTS_FOR_DOTS
 
 
-# класс игрового бонуса в виде маленткой точки увеличивает счёт пользователя
+# класс игрового бонуса в виде маленькой точки увеличивает счёт пользователя
 class SmallDot(pygame.sprite.Sprite):
     def __init__(self, *param):
         super().__init__(param[:-3])
@@ -538,21 +536,21 @@ class Achievement(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
 
         self.rect.x = WIDTH + 185
-        self.rect.y = HEIGHT + 60
+        self.rect.y = HEIGHT - 80
         self.flag = False
         self.counter = 0
 
     def update(self):
-        if self.counter <= 150:
+        if self.counter <= 192:
             self.rect.x -= 2
-        elif 5000 >= self.counter > 350:
+        elif 5000 >= self.counter > 392:
             self.rect.x += 2
         self.counter += 1
 
         screen.blit(self.image, self.rect)
 
 
-# ниже 3 класса для создания визуального эффекта салюта, взяты с этой страницы
+# Ниже 3 класса для создания визуального эффекта салюта, взяты с этой страницы
 # у пользователя S. Nick https://ru.stackoverflow.com/questions/1335957/
 class Circles:
     def __init__(self, r, x, y):
@@ -656,7 +654,7 @@ class Firework:
         pygame.draw.ellipse(screen, color, [a[0], a[1], 15, 15], 2)
 
 
-# класс игровой карты, при иницилизации получает путь к файлу игры и уровень
+# класс игровой карты, при инициализации получает путь к файлу игры и уровень
 # к которому эта карта относится
 class Map:
     def __init__(self, filename, level):
@@ -815,6 +813,9 @@ class Level:
             self.render()
         else:
             self.running = False
+            width = 600
+            height = 600
+            pygame.display.set_mode((width, height))
             screen.fill(pygame.Color(0))
 
             # сообщение "YOU LOSE" на экране
@@ -822,8 +823,8 @@ class Level:
             text = 'YOU LOSE'
             string_rendered = font.render(text, True, pygame.Color('red'))
             lose_rect = string_rendered.get_rect()
-            lose_rect.x = SIZE[0] // 2.5
-            lose_rect.y = SIZE[1] // 2
+            lose_rect.x = SIZE[0] // 4.2
+            lose_rect.y = SIZE[1] * 0.4
             screen.blit(string_rendered, lose_rect)
 
             # сообщение "PRESS ANY KEY" на экране
@@ -832,11 +833,9 @@ class Level:
             string_rendered = small_font.render(text, True, pygame.Color(
                 'white'))
             lose_rect = string_rendered.get_rect()
-            lose_rect.x = SIZE[0] // 2
-            lose_rect.y = SIZE[1] * 0.8
+            lose_rect.x = SIZE[0] // 2.5
+            lose_rect.y = SIZE[1] * 0.6
             screen.blit(string_rendered, lose_rect)
-
-            key_count = 0
 
             pygame.display.flip()
 
@@ -847,14 +846,11 @@ class Level:
                     if event.type == pygame.QUIT:
                         sys.exit()
                     if event.type == pygame.KEYDOWN:
-                        if key_count >= 5:
-                            lose_running = False
-                        else:
-                            key_count += 1
+                        lose_running = False
             StartScreen().run()
 
     def winning(self):
-        # обращение к БД для открытия следущих уровней и записи счёта
+        # обращение к БД для открытия следующих уровней и записи счёта
         if self.map_number == 1:
             DatabaseQuery().call(f'UPDATE Scoring SET level_two_status = 1'
                                  f' WHERE player_id = {self.user_id}')
@@ -864,14 +860,16 @@ class Level:
 
         DatabaseQuery().call(f'UPDATE Scoring SET score = score + '
                              f'{self.score} WHERE player_id = {self.user_id}')
-
+        width = 600
+        height = 600
+        pygame.display.set_mode((width, height))
         # сообщение "YOU WIN" на экране
         font = pygame.font.Font('data/fonts/arcade-n.ttf', 40)
         text = 'YOU WIN'
         string_rendered = font.render(text, True, pygame.Color('yellow'))
         win_rect = string_rendered.get_rect()
-        win_rect.x = SIZE[0] // 2.4
-        win_rect.y = SIZE[1] // 2
+        win_rect.x = SIZE[0] // 3.7
+        win_rect.y = SIZE[1] * 0.4
 
         # сообщение "PRESS ANY KEY TO CONTINUE" на экране
         font = pygame.font.Font('data/fonts/arcade-n.ttf', 10)
@@ -879,15 +877,13 @@ class Level:
         info_string_rendered = font.render(info_text, True, pygame.Color(
             'white'))
         info_rect = info_string_rendered.get_rect()
-        info_rect.x = SIZE[0] // 2.3
-        info_rect.y = SIZE[1] * 0.7
+        info_rect.x = SIZE[0] // 3.3
+        info_rect.y = SIZE[1] * 0.6
 
         game_achievement = Achievement(self.map_number)
 
         fireworks = [Firework()]
         streaks = []
-
-        key_count = 0
 
         win_running = True
         while win_running:
@@ -895,10 +891,7 @@ class Level:
                 if event.type == pygame.QUIT:
                     sys.exit()
                 if event.type == pygame.KEYDOWN:
-                    if key_count >= 5:
-                        win_running = False
-                    else:
-                        key_count += 1
+                    win_running = False
 
             if random.uniform(0, 1) <= 1 / 60:
                 fireworks.append(Firework())
@@ -942,7 +935,7 @@ class Level:
     def run(self, user_id):
         self.main_map.render()
         self.user_id = user_id
-        pygame.time.set_timer(pygame.NOEVENT, 150000)
+        pygame.time.set_timer(pygame.NOEVENT, 95000)
 
         while self.running:
             self.draw_level()
@@ -1059,7 +1052,7 @@ class RecordsScreen:
             pygame.display.flip()
 
 
-# класс экрана иницилизации
+# класс экрана инициализации
 class InitScreen:
     def __init__(self):
         self.width = 600
@@ -1131,7 +1124,7 @@ class InitScreen:
             Level(1, 'data/maps/map1.txt').run(player_info[0])
 
 
-# класс стартого экрана
+# класс стартового экрана
 class StartScreen:
     def __init__(self):
         self.width = 600

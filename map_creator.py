@@ -161,19 +161,21 @@ class Board:
         self.top = top
         self.cell_size = cell_size
 
-    def render(self, screen):
+    def render(self, screen_to_render):
         for y in range(0, self.height):
             for x in range(0, self.width):
                 if self.board[y][x] == 0:
-                    pygame.draw.rect(screen, pygame.Color(255, 255, 255), (
-                        x * self.cell_size + self.left,
-                        y * self.cell_size + self.top,
-                        self.cell_size, self.cell_size), 1)
+                    pygame.draw.rect(screen_to_render,
+                                     pygame.Color(255, 255, 255), (
+                                         x * self.cell_size + self.left,
+                                         y * self.cell_size + self.top,
+                                         self.cell_size, self.cell_size), 1)
                 elif self.board[y][x] == 1:
-                    pygame.draw.rect(screen, pygame.Color(106, 13, 173), (
-                        x * self.cell_size + self.left,
-                        y * self.cell_size + self.top,
-                        self.cell_size, self.cell_size))
+                    pygame.draw.rect(screen_to_render,
+                                     pygame.Color(106, 13, 173), (
+                                         x * self.cell_size + self.left,
+                                         y * self.cell_size + self.top,
+                                         self.cell_size, self.cell_size))
         for i in self.enemy_list:
             if i[0] == 'G' and i[-1] == 'RED':
                 IMAGE = pygame.transform.scale(
@@ -182,7 +184,7 @@ class Board:
                 rect = IMAGE.get_rect()
                 rect.x, rect.y = i[1] * self.cell_size + self.left, i[
                     2] * self.cell_size + self.top
-                screen.blit(IMAGE, rect)
+                screen_to_render.blit(IMAGE, rect)
 
             elif i[0] == 'G' and i[-1] == 'GREEN':
                 IMAGE = pygame.transform.scale(
@@ -191,7 +193,7 @@ class Board:
                 rect = IMAGE.get_rect()
                 rect.x, rect.y = i[1] * self.cell_size + self.left, i[
                     2] * self.cell_size + self.top
-                screen.blit(IMAGE, rect)
+                screen_to_render.blit(IMAGE, rect)
 
             elif i[0] == 'G' and i[-1] == 'BLUE':
                 IMAGE = pygame.transform.scale(
@@ -200,7 +202,7 @@ class Board:
                 rect = IMAGE.get_rect()
                 rect.x, rect.y = i[1] * self.cell_size + self.left, i[
                     2] * self.cell_size + self.top
-                screen.blit(IMAGE, rect)
+                screen_to_render.blit(IMAGE, rect)
 
             elif i[0] == 'G' and i[-1] == 'YELLOW':
                 IMAGE = pygame.transform.scale(
@@ -209,7 +211,7 @@ class Board:
                 rect = IMAGE.get_rect()
                 rect.x, rect.y = i[1] * self.cell_size + self.left, i[
                     2] * self.cell_size + self.top
-                screen.blit(IMAGE, rect)
+                screen_to_render.blit(IMAGE, rect)
 
             elif i[0] == 'P':
                 IMAGE = pygame.transform.scale(
@@ -218,7 +220,7 @@ class Board:
                 rect = IMAGE.get_rect()
                 rect.x, rect.y = i[1] * self.cell_size + self.left, i[
                     2] * self.cell_size + self.top
-                screen.blit(IMAGE, rect)
+                screen_to_render.blit(IMAGE, rect)
 
     def get_cell(self, mouse_pos):
         x = 0
@@ -233,8 +235,8 @@ class Board:
 
     def on_click(self, cell_coords, action):
         for i in range(len(self.enemy_list) - 1):
-            if self.enemy_list[i][1] == cell_coords[0] and self.enemy_list[i][
-                2] == cell_coords[1]:
+            if self.enemy_list[i][1] == cell_coords[0] and \
+                    self.enemy_list[i][2] == cell_coords[1]:
                 del self.enemy_list[i]
         if action == 'SET_TILE':
             self.board[cell_coords[1]][cell_coords[0]] = 1
