@@ -18,8 +18,7 @@ class MapCreator:
                                                      'data/theme.json')
 
         self.text = self.arcade_font.render('Here you can create your own '
-                                            'map', 1,
-                                            (0, 0, 0))
+                                            'map', 1, (0, 0, 0))
         self.small_text = self.arcade_font_small.render('map name', 1,
                                                         (60, 60, 60))
 
@@ -104,9 +103,17 @@ class MapCreator:
                     running = False
                 if pygame.mouse.get_pressed()[0] and board.pos_on_board(
                         pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1]):
-                    board.on_click(board.get_cell(event.pos), self.action)
-                    board.render(screen)
-                    pygame.display.flip()
+                    try:
+                        board.on_click(board.get_cell(event.pos), self.action)
+                    except AttributeError:
+                        pass
+                    else:
+                        board.render(screen)
+                        pygame.display.flip()
+                if event.type == pygame.KEYDOWN and event.key \
+                        == pygame.K_DELETE:
+                    board.clear()
+
                 elif event.type == pygame_gui.UI_BUTTON_PRESSED:
 
                     if event.ui_element == self.tile_button:
@@ -126,16 +133,27 @@ class MapCreator:
                     elif event.ui_element == self.create_button:
                         if self.text_input.get_text() != '' \
                                 and board.enemy_list != []:
+
                             file_map = open(
                                 'data/maps/' + self.text_input.get_text() +
                                 '.txt', 'w+')
-                            for line in board.board:
+                            brd = board.board.copy()
+
+                            while set(brd[0]) == {0}:
+                                del brd[0]
+
+                            while set(brd[-1]) == {0}:
+                                del brd[-1]
+
+                            for line in brd:
                                 file_map.write(''.join(list(map(
                                     str, line))) + '\n')
+
                             file_map.write('\n')
                             file_map.write(';'.join(list(
                                 map(lambda x: '-'.join(list(map(str, x))),
                                     board.enemy_list))))
+
                             file_map.close()
 
                 self.map_edit_manager.process_events(event)
@@ -160,6 +178,9 @@ class Board:
         self.left = left
         self.top = top
         self.cell_size = cell_size
+
+    def clear(self):
+        self.board = [[0] * self.width for _ in range(self.height)]
 
     def render(self, screen_to_render):
         for y in range(0, self.height):
@@ -245,16 +266,21 @@ class Board:
         elif action == 'SET_RED':
             self.enemy_list.append(
                 ['G', cell_coords[0], cell_coords[1], 'RED'])
+            self.board[cell_coords[1]][cell_coords[0]] = 3
         elif action == 'SET_GREEN':
             self.enemy_list.append(
                 ['G', cell_coords[0], cell_coords[1], 'GREEN'])
+            self.board[cell_coords[1]][cell_coords[0]] = 3
         elif action == 'SET_BLUE':
             self.enemy_list.append(
                 ['G', cell_coords[0], cell_coords[1], 'BLUE'])
+            self.board[cell_coords[1]][cell_coords[0]] = 3
         elif action == 'SET_YELLOW':
             self.enemy_list.append(
                 ['G', cell_coords[0], cell_coords[1], 'YELLOW'])
+            self.board[cell_coords[1]][cell_coords[0]] = 3
         elif action == 'SET_PLAYER':
+            self.board[cell_coords[1]][cell_coords[0]] = 3
             flag = False
             for i in self.enemy_list:
                 if i[0] == 'P':

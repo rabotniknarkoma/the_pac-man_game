@@ -1071,6 +1071,13 @@ class InitScreen:
             object_id=ObjectID(class_id='@init_screen',
                                object_id='#text_box'))
 
+        self.train_button = pygame_gui.elements.UIButton(
+            relative_rect=pygame.Rect((226, 545), (131, 42)),
+            text='',
+            manager=self.init_screen_manager,
+            object_id=ObjectID(class_id='@init_screen',
+                               object_id='#train_button'))
+
         self.text_input.set_text_length_limit(10)
 
     def run(self):
@@ -1086,7 +1093,7 @@ class InitScreen:
                 if event.type == pygame.QUIT:
                     sys.exit()
 
-                if event.type == pygame.KEYDOWN:
+                elif event.type == pygame.KEYDOWN:
 
                     if event.key == pygame.K_RETURN \
                             and self.text_input.get_text() != '':
@@ -1106,6 +1113,14 @@ class InitScreen:
                             player_info = player_info[0]
 
                         running = False
+
+                elif event.type == pygame_gui.UI_BUTTON_PRESSED:
+
+                    if event.ui_element == self.train_button:
+                        running = False
+                        TransitionScreen().run()
+                        TransitionScreen().run(reverse=True)
+                        StartScreen().run()
 
                 self.init_screen_manager.process_events(event)
 

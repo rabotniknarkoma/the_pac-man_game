@@ -76,6 +76,24 @@
             }
         }
     },
+    "#train_button": {
+        "misc": {
+            "border_width": "0",
+            "shadow_width": "0"
+        },
+        "colours": {
+            "normal_bg": "#00000000",
+            "hovered_bg": "#00000000"
+        },
+        "images": {
+            "normal_image": {
+                "path": "data/GUI/train_button.png"
+            },
+            "hovered_image": {
+                "path": "data/GUI/train_button.png"
+            }
+        }
+    },
     "@map_creator_screen": {
     },
     "#create_button": {
