@@ -752,23 +752,18 @@ class Level:
                 -1].strip().split(';')))
 
         if len(data) >= 2:
-            self.gh1 = Ghost(int(data[0][1]), int(data[0][2]),
-                             self.main_map, data[0][3])
+            Ghost(int(data[0][1]), int(data[0][2]), self.main_map, data[0][3])
 
         if len(data) >= 3:
-            self.gh2 = Ghost(int(data[1][1]), int(data[1][2]),
-                             self.main_map, data[1][3])
+            Ghost(int(data[1][1]), int(data[1][2]), self.main_map, data[1][3])
 
         if len(data) >= 4:
-            self.gh3 = Ghost(int(data[2][1]), int(data[2][2]),
-                             self.main_map, data[2][3])
+            Ghost(int(data[2][1]), int(data[2][2]), self.main_map, data[2][3])
 
         if len(data) == 5:
-            self.gh4 = Ghost(int(data[3][1]), int(data[3][2]),
-                             self.main_map, data[3][3])
+            Ghost(int(data[3][1]), int(data[3][2]), self.main_map, data[3][3])
 
-        self.player = Player(int(data[-1][1]), int(data[-1][2]),
-                             self.main_map)
+        Player(int(data[-1][1]), int(data[-1][2]), self.main_map)
 
     def draw_score(self):
         font = pygame.font.Font(None, 30)
